@@ -16,8 +16,8 @@ Mechanics** (primary), Unstoppable DeFi, Social Money, Open Innovation.
 | Live on testnet | factory [`factory.nolossmeme.testnet`](https://testnet.nearblocks.io/address/factory.nolossmeme.testnet), first pool [`dogn.factory.nolossmeme.testnet`](https://testnet.nearblocks.io/address/dogn.factory.nolossmeme.testnet) (hourly draws; pool code hash `spStblsHJrb3IpGz3GEJU/NVmuufZvsptLsj1ltGBdg=`, built from `main`) |
 | Staking         | Meta Pool testnet [`meta-v2.pool.testnet`](https://testnet.nearblocks.io/address/meta-v2.pool.testnet) (stNEAR)                                                                                                                                                                                                                  |
 | Keeper          | [`keeper.nolossmeme.testnet`](https://testnet.nearblocks.io/address/keeper.nolossmeme.testnet), GitHub Actions cron every 15 min                                                                                                                                                                                                 |
-| Landing         | **<https://nolossmeme.github.io/nolossmeme/>** (static site, `apps/landing`)                                                                                                                                                                                                                                                     |
-| Web app         | **<https://nolossmeme.github.io/nolossmeme/app/>** (dApp, `apps/web`); both auto-deploy from `main`                                                                                                                                                                                                                              |
+| Landing         | **<https://nolossmeme.fun/>** (static site, `apps/landing`)                                                                                                                                                                                                                                                                      |
+| Web app         | **<https://nolossmeme.fun/app/>** (dApp, `apps/web`); both auto-deploy from `main`                                                                                                                                                                                                                                               |
 | Demo post       | _added at submission_ (44 s walkthrough of the hosted app: [`docs/demo.mp4`](docs/demo.mp4))                                                                                                                                                                                                                                     |
 
 <p align="center"><img src="docs/screenshots/meme.png" alt="Pool page" width="800"></p>
@@ -142,7 +142,7 @@ pnpm lint && pnpm test       # TypeScript packages
 pnpm --filter @nolossmeme/web build
 ```
 
-CI: `contracts` (fmt, clippy, unit, sandbox), `web` (format, lint, test, build for sdk, ui, landing, web, keeper, backend), `sim` (pytest + chart), `sonar` (SonarQube Cloud), `keeper` (cron). The backend ships as a Docker image (`services/backend/Dockerfile`); set the repository variable `INDEXER_URL` and the Pages builds point at it. See [CONTRIBUTING.md](CONTRIBUTING.md) for the branch and commit conventions.
+CI: `contracts` (fmt, clippy, unit, sandbox), `web` (format, lint, test, build for sdk, ui, landing, web, keeper, backend), `sim` (pytest + chart), `sonar` (SonarQube Cloud), `keeper` (cron). The backend ships as a Docker image (`services/backend/Dockerfile`); set the repository variable `INDEXER_URL` (planned: `https://api.nolossmeme.fun`) and the Pages builds point at it. See [CONTRIBUTING.md](CONTRIBUTING.md) for the branch and commit conventions.
 
 ## Hackathon notes
 

@@ -1,16 +1,6 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 
-interface ToastItem {
-  id: number;
-  kind: "success" | "error" | "info";
-  text: string;
-}
-
-interface ToastApi {
-  show: (t: Omit<ToastItem, "id">) => void;
-}
-
-const ToastContext = createContext<ToastApi>({ show: () => undefined });
+import { ToastContext, type ToastItem } from "../hooks/useToast";
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([]);
@@ -45,8 +35,4 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       </div>
     </ToastContext.Provider>
   );
-}
-
-export function useToast(): ToastApi {
-  return useContext(ToastContext);
 }

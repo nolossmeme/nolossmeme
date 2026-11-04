@@ -2,7 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNearWallet } from "near-connect-hooks";
 import { useCallback, useState } from "react";
 
-import { useToast } from "../components/Toast";
+import { useToast } from "../hooks/useToast";
 import type { ContractCall } from "@nolossmeme/sdk";
 
 export interface TxState {

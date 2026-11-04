@@ -11,13 +11,13 @@ Mechanics** (primary), Unstoppable DeFi, Social Money, Open Innovation.
 [![web](https://github.com/nolossmeme/nolossmeme/actions/workflows/web.yml/badge.svg)](https://github.com/nolossmeme/nolossmeme/actions/workflows/web.yml)
 [![sim](https://github.com/nolossmeme/nolossmeme/actions/workflows/sim.yml/badge.svg)](https://github.com/nolossmeme/nolossmeme/actions/workflows/sim.yml)
 
-|                 |                                                                                                                                                                                                                |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Live on testnet | factory [`nolossmeme.testnet`](https://testnet.nearblocks.io/address/nolossmeme.testnet), first pool [`dogn.nolossmeme.testnet`](https://testnet.nearblocks.io/address/dogn.nolossmeme.testnet) (hourly draws) |
-| Staking         | Meta Pool testnet [`meta-v2.pool.testnet`](https://testnet.nearblocks.io/address/meta-v2.pool.testnet) (stNEAR)                                                                                                |
-| Keeper          | [`keeper.nolossmeme.testnet`](https://testnet.nearblocks.io/address/keeper.nolossmeme.testnet), GitHub Actions cron every 15 min                                                                               |
-| Web app         | **<https://nolossmeme.github.io/nolossmeme/>** (GitHub Pages, auto-deployed from `main`), or `pnpm --filter @nolossmeme/web dev` (step 5 below)                                                                |
-| Demo post       | _added at submission_                                                                                                                                                                                          |
+|                 |                                                                                                                                                                                                                                                                                                                                  |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Live on testnet | factory [`factory.nolossmeme.testnet`](https://testnet.nearblocks.io/address/factory.nolossmeme.testnet), first pool [`dogn.factory.nolossmeme.testnet`](https://testnet.nearblocks.io/address/dogn.factory.nolossmeme.testnet) (hourly draws; pool code hash `spStblsHJrb3IpGz3GEJU/NVmuufZvsptLsj1ltGBdg=`, built from `main`) |
+| Staking         | Meta Pool testnet [`meta-v2.pool.testnet`](https://testnet.nearblocks.io/address/meta-v2.pool.testnet) (stNEAR)                                                                                                                                                                                                                  |
+| Keeper          | [`keeper.nolossmeme.testnet`](https://testnet.nearblocks.io/address/keeper.nolossmeme.testnet), GitHub Actions cron every 15 min                                                                                                                                                                                                 |
+| Web app         | **<https://nolossmeme.github.io/nolossmeme/>** (GitHub Pages, auto-deployed from `main`), or `pnpm --filter @nolossmeme/web dev` (step 5 below)                                                                                                                                                                                  |
+| Demo post       | _added at submission_                                                                                                                                                                                                                                                                                                            |
 
 <p align="center"><img src="docs/screenshots/meme.png" alt="Pool page" width="800"></p>
 
@@ -59,14 +59,14 @@ Prerequisites: Rust (the `contracts/rust-toolchain.toml` pins 1.96), [`cargo-nea
 4. `cd .. && pnpm --filter @nolossmeme/sdk test`
    → see **15 tests pass** for the TypeScript SDK (formatting, transaction builders, tokenomics mirrors, RPC client).
 5. `pnpm --filter @nolossmeme/sdk build && pnpm --filter @nolossmeme/web dev`, open <http://localhost:5173>
-   → see the **Doge of NEAR** pool with live testnet data: NEAR locked, floor, next-draw countdown, draw log. Connect a testnet wallet (HOT, Meteor, MyNearWallet) to deposit 0.1 Ⓝ, check in, and withdraw again.
+   → see the **Doge of NEAR** pool (`dogn.factory.nolossmeme.testnet`) with live testnet data: NEAR locked, floor, next-draw countdown, draw log. Connect a testnet wallet (HOT, Meteor, MyNearWallet) to deposit 0.1 Ⓝ, check in, and withdraw again.
 6. `DRY_RUN=1 pnpm --filter @nolossmeme/keeper start`
    → see the keeper list every pool and print `skip (epoch ends in Ns)` or `would draw epoch #N`.
 7. `cd tools/sim && uv run --with matplotlib --with pytest python -m pytest -q && uv run --with matplotlib python -m nolossmeme_sim.cli --out output`
    → see **4 tests pass** and `output/projection.png` regenerated with the table printed above it.
 8. Read the chain directly (no tooling needed):
    ```bash
-   curl -s https://test.rpc.fastnear.com -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"query","params":{"request_type":"call_function","finality":"final","account_id":"dogn.nolossmeme.testnet","method_name":"get_state","args_base64":"e30="}}' | python3 -c 'import sys,json;print(bytes(json.load(sys.stdin)["result"]["result"]).decode())'
+   curl -s https://test.rpc.fastnear.com -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"query","params":{"request_type":"call_function","finality":"final","account_id":"dogn.factory.nolossmeme.testnet","method_name":"get_state","args_base64":"e30="}}' | python3 -c 'import sys,json;print(bytes(json.load(sys.stdin)["result"]["result"]).decode())'
    ```
    → see the pool state JSON (`total_principal`, `treasury_shares`, `floor_price`, `next_draw_at`, …).
 
@@ -111,12 +111,12 @@ Prerequisites: Rust (the `contracts/rust-toolchain.toml` pins 1.96), [`cargo-nea
 Through the web app (**Launch** page) or with the CLI:
 
 ```bash
-near contract call-function as-transaction nolossmeme.testnet create_meme \
+near contract call-function as-transaction factory.nolossmeme.testnet create_meme \
   json-args '{"slug":"pepn","name":"Pepe of NEAR","symbol":"PEPN","icon":"🐸","params":{"epoch_length_ns":"86400000000000","initial_emission":"1000000000000000000000","halving_every":30,"jackpot_bps":7000,"streak_step_bps":1000,"max_streak_bonus_bps":5000,"min_deposit":"100000000000000000000000"}}' \
   prepaid-gas '300 Tgas' attached-deposit '3.5 NEAR' sign-as you.testnet network-config testnet sign-with-keychain send
 ```
 
-The attached NEAR funds the new account's storage (`get_launch_cost`, ≈ 3.2 Ⓝ). To deploy a fresh factory: `contracts/scripts/deploy-testnet.sh <account.testnet>`.
+The attached NEAR funds the new account's storage (`get_launch_cost`, ≈ 3.2 Ⓝ). To deploy a fresh factory: `contracts/scripts/deploy-testnet.sh <account.testnet>`. An earlier factory at `nolossmeme.testnet` (pool `dogn.nolossmeme.testnet`) runs the pre-#24 pool code and is kept only as history; pool code is frozen per factory, so fixes ship as a new factory.
 
 ## Known limits
 

@@ -1,0 +1,7 @@
+node_modules
+dist
+build
+target
+pnpm-lock.yaml
+contracts
+tools/sim/output

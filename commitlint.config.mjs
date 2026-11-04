@@ -14,6 +14,7 @@ export default {
         "landing",
         "ui",
         "keeper",
+        "backend",
         "sim",
         "ci",
         "docs",

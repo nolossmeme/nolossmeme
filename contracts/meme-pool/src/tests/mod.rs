@@ -2,6 +2,7 @@
 //! are invoked directly with the result Meta Pool would have returned.
 mod draw;
 mod redeem;
+mod regression;
 mod tickets;
 mod vault;
 
@@ -85,5 +86,5 @@ pub fn draw(c: &mut Contract, ts: u64, price: u128) -> crate::types::Draw {
     ctx(bob(), 0, ts);
     let _ = c.draw();
     ctx(pool(), 0, ts);
-    c.on_draw_price(Ok(U128(price)))
+    c.on_draw_price(Ok(U128(price))).expect("draw settles")
 }

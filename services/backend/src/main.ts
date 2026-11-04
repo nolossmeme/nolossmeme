@@ -20,6 +20,9 @@ async function main(): Promise<void> {
   const client = new NoLossMemeClient(cfg.network);
   const data = new NearData(cfg.neardataUrl, { rps: cfg.NEARDATA_RPS });
 
+  const roles = new Set(
+    cfg.ROLE === "all" ? ["api", "scanner", "jobs"] : cfg.ROLE.split(",").map((r) => r.trim()),
+  );
   let head: number | null = null;
   const headTracker = setInterval(
     () =>
@@ -43,9 +46,11 @@ async function main(): Promise<void> {
     },
   );
 
-  const stopSnapshots = startSnapshotJob(store, client, cfg.SNAPSHOT_INTERVAL_MS, () => head);
+  const stopSnapshots = roles.has("jobs")
+    ? startSnapshotJob(store, client, cfg.SNAPSHOT_INTERVAL_MS, () => head)
+    : () => undefined;
   const stopKeeper =
-    cfg.KEEPER_ACCOUNT_ID && cfg.KEEPER_PRIVATE_KEY
+    roles.has("jobs") && cfg.KEEPER_ACCOUNT_ID && cfg.KEEPER_PRIVATE_KEY
       ? startKeeperJob(
           store,
           client,
@@ -62,13 +67,16 @@ async function main(): Promise<void> {
     head: () => head,
     startedAt: Date.now(),
   });
-  const server = serve({ fetch: app.fetch, port: cfg.PORT }, (info) =>
-    log.info("api listening", {
-      port: info.port,
-      network: cfg.NEAR_NETWORK,
-      factory: cfg.network.factory,
-    }),
-  );
+  const server = roles.has("api")
+    ? serve({ fetch: app.fetch, port: cfg.PORT }, (info) =>
+        log.info("api listening", {
+          port: info.port,
+          network: cfg.NEAR_NETWORK,
+          factory: cfg.network.factory,
+          roles: [...roles],
+        }),
+      )
+    : null;
 
   const shutdown = () => {
     log.info("shutting down");
@@ -76,14 +84,15 @@ async function main(): Promise<void> {
     stopSnapshots();
     stopKeeper();
     clearInterval(headTracker);
-    server.close();
+    server?.close();
     db.close();
     process.exit(0);
   };
   process.on("SIGINT", shutdown);
   process.on("SIGTERM", shutdown);
 
-  await scanner.run();
+  if (roles.has("scanner")) await scanner.run();
+  else log.info("scanner disabled in this role", { roles: [...roles] });
 }
 
 main().catch((e: unknown) => {

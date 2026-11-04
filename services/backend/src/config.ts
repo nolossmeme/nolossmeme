@@ -26,6 +26,8 @@ const Env = z.object({
   KEEPER_PRIVATE_KEY: z.string().optional(),
   KEEPER_INTERVAL_MS: z.coerce.number().int().min(15_000).default(60_000),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
+  /** Which parts to run in this process: `all`, or any comma list of `api`, `scanner`, `jobs`. */
+  ROLE: z.string().default("all"),
 });
 
 export interface Config extends z.infer<typeof Env> {

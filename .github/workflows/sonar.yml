@@ -1,0 +1,20 @@
+name: sonar
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  scan:
+    name: SonarQube Cloud scan
+    runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.head.repo.fork == false }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

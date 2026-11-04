@@ -8,6 +8,7 @@ use near_sdk::{
 };
 
 use crate::constants::*;
+use crate::events;
 use crate::math::{mul_div, shares_from_near};
 use crate::types::LiquidUnstakeResult;
 use crate::{Contract, ContractExt};
@@ -55,16 +56,11 @@ impl Contract {
                 self.credit_principal(&account, amount.0);
                 self.total_shares += shares.0;
                 self.st_near_price = mul_div(amount.0, ONE_NEAR, shares.0);
-                log!(
-                    "deposit {} yoctoNEAR from {} -> {} stNEAR shares",
-                    amount.0,
-                    account,
-                    shares.0
-                );
+                events::deposit(&account, amount.0, shares.0);
                 amount
             }
             _ => {
-                log!("staking failed, refunding {} to {}", amount.0, account);
+                events::deposit_refunded(&account, amount.0);
                 Promise::new(account)
                     .transfer(NearToken::from_yoctonear(amount.0))
                     .detach();
@@ -132,12 +128,7 @@ impl Contract {
         }
         self.in_flight -= 1;
         self.cleanup_depositor(&account);
-        log!(
-            "withdraw {} yoctoNEAR as {} stNEAR to {}",
-            amount.0,
-            shares.0,
-            account
-        );
+        events::withdraw(&account, amount.0, shares.0);
         shares
     }
 
@@ -219,12 +210,7 @@ impl Contract {
             result.is_ok(),
             "staking pool withdraw failed; funds remain in the pool's available balance"
         );
-        log!(
-            "withdraw_near {} yoctoNEAR (fee {}) to {}",
-            near.0,
-            fee.0,
-            account
-        );
+        events::withdraw_near(&account, near.0, fee.0);
         Promise::new(account)
             .transfer(NearToken::from_yoctonear(near.0))
             .detach();

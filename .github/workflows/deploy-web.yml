@@ -3,7 +3,7 @@ name: deploy-web
 on:
   push:
     branches: [main]
-    paths: ["apps/web/**", "packages/sdk/**", ".github/workflows/deploy-web.yml"]
+    paths: ["apps/**", "packages/**", ".github/workflows/deploy-web.yml"]
   workflow_dispatch:
 
 permissions:
@@ -27,12 +27,26 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @nolossmeme/sdk build
-      - run: pnpm --filter @nolossmeme/web build
+      - name: Build landing (site root)
+        run: pnpm --filter @nolossmeme/landing build
         env:
           VITE_BASE: /nolossmeme/
-      - uses: actions/upload-pages-artifact@v3
+          VITE_APP_URL: /nolossmeme/app/
+      - name: Build dApp (under /app)
+        run: pnpm --filter @nolossmeme/web build
+        env:
+          VITE_BASE: /nolossmeme/app/
+          VITE_LANDING_URL: /nolossmeme/
+      - name: Assemble one Pages artifact
+        run: |
+          mkdir -p site
+          cp -R apps/landing/dist/. site/
+          mkdir -p site/app
+          cp -R apps/web/dist/. site/app/
+          rm -f site/app/404.html
+      - uses: actions/upload-pages-artifact@v7
         with:
-          path: apps/web/dist
+          path: site
 
   deploy:
     needs: build

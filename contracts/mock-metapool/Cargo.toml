@@ -1,0 +1,17 @@
+[package]
+name = "mock-metapool"
+description = "Minimal Meta Pool stand-in for sandbox tests: stNEAR with a settable price"
+version.workspace = true
+edition.workspace = true
+repository.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+near-sdk = { workspace = true }
+primitive-types = { version = "0.13", default-features = false }
+
+[lints.rust.unexpected_cfgs]
+level = "warn"
+check-cfg = ['cfg(near)']

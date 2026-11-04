@@ -58,7 +58,7 @@ export function MemePage() {
             {meme.name} <span className="text-muted font-mono text-xl">${meme.symbol}</span>
           </h1>
           <a
-            className="text-xs text-muted hover:text-text font-mono"
+            className="text-xs text-muted hover:text-text font-mono break-all"
             href={explorerAccount(pool)}
             target="_blank"
             rel="noreferrer"
@@ -66,7 +66,7 @@ export function MemePage() {
             {pool}
           </a>
         </div>
-        <div className="ml-auto card px-5 py-3 text-right">
+        <div className="ml-auto w-full sm:w-auto card px-5 py-3 text-right">
           <div className="kicker">Next draw</div>
           <div className="text-2xl">
             <Countdown targetMs={state ? nsToDate(state.next_draw_at).getTime() : undefined} />

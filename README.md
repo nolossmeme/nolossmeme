@@ -59,7 +59,7 @@ Prerequisites: Rust (the `contracts/rust-toolchain.toml` pins 1.96), [`cargo-nea
 4. `cd .. && pnpm --filter @nolossmeme/sdk test`
    → see **15 tests pass** for the TypeScript SDK (formatting, transaction builders, tokenomics mirrors, RPC client).
 5. `pnpm --filter @nolossmeme/sdk build && pnpm --filter @nolossmeme/web dev`, open <http://localhost:5173>
-   → see the **Doge of NEAR** pool (`dogn.factory.nolossmeme.testnet`) with live testnet data: NEAR locked, floor, next-draw countdown, draw log. Connect a testnet wallet (HOT, Meteor, MyNearWallet) to deposit 0.1 Ⓝ, check in, and withdraw again.
+   → see the landing page (globe hero, live stats), then **Memes** → the **Doge of NEAR** pool (`dogn.factory.nolossmeme.testnet`) with live testnet data: NEAR locked, floor, next-draw countdown, draw log. Connect a testnet wallet (HOT, Meteor, MyNearWallet) to deposit 0.1 Ⓝ, check in, and withdraw again.
 6. `DRY_RUN=1 pnpm --filter @nolossmeme/keeper start`
    → see the keeper list every pool and print `skip (epoch ends in Ns)` or `would draw epoch #N`.
 7. `cd tools/sim && uv run --with matplotlib --with pytest python -m pytest -q && uv run --with matplotlib python -m nolossmeme_sim.cli --out output`

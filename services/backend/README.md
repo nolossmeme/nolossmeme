@@ -19,7 +19,7 @@ pnpm --filter @nolossmeme/backend backfill 276200000   # one-off range, then exi
 pnpm --filter @nolossmeme/backend test
 ```
 
-The archive allows roughly 2–3 requests per second per client; the defaults (`NEARDATA_RPS=2`, `SCAN_CONCURRENCY=2`) stay under that and back off on 429. A backfill from the factory deploy (~6 000 blocks) takes under an hour; following the head is real time.
+Both upstreams throttle: the block archive at roughly 1 request per second sustained, the free RPC at about 2 per second for `EXPERIMENTAL_changes_in_block`. The defaults (`NEARDATA_RPS=1`, `SCAN_CONCURRENCY=1`, `RPC_RPS=2`, `RPC_CONCURRENCY=2`) stay under that and back off on 429. Sparse scanning asks the RPC which accounts a block touched and fetches only blocks that touched ours, so following the head costs about one RPC call per block (real time) and a backfill of the ~9 000 blocks since the factory deploy takes about an hour and a half.
 
 Environment (all optional, see `src/config.ts`): `NEAR_NETWORK`, `FACTORY_ID`, `DATABASE_URL`, `DATABASE_AUTH_TOKEN`, `START_BLOCK`, `SCAN_CONCURRENCY`, `SNAPSHOT_INTERVAL_MS`, `PORT`, `CORS_ORIGIN`, `KEEPER_ACCOUNT_ID`, `KEEPER_PRIVATE_KEY`, `LOG_LEVEL`.
 

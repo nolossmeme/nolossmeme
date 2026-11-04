@@ -19,7 +19,7 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - run: uv run --with matplotlib --with pytest python -m pytest -q
       - run: uv run --with matplotlib python -m nolossmeme_sim.cli --out output
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: projection
           path: tools/sim/output

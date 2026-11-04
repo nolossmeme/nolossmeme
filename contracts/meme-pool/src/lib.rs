@@ -18,6 +18,7 @@
 //! - [`views`]: read-only snapshots
 mod constants;
 mod math;
+mod tickets;
 mod types;
 
 #[cfg(test)]

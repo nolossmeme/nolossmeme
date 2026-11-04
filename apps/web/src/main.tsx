@@ -10,6 +10,7 @@ import { NETWORK_ID, network } from "./lib/client";
 import "./index.css";
 
 // Static hosts send unknown paths to 404.html, which stashes the path and redirects here.
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 const stashed = sessionStorage.getItem("nlm:path");
 if (stashed) {
   sessionStorage.removeItem("nlm:path");
@@ -25,7 +26,7 @@ createRoot(document.getElementById("root")!).render(
     <NearProvider config={{ network: NETWORK_ID, providers: { [NETWORK_ID]: [network.rpcUrl] } }}>
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
-          <BrowserRouter>
+          <BrowserRouter basename={base}>
             <App />
           </BrowserRouter>
         </ToastProvider>

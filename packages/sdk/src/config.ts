@@ -39,5 +39,8 @@ export const GAS = {
   storageDeposit: 30n,
 } as const;
 
+/** Meta Pool rejects stakes below this (its `min_deposit_amount`), so pools cannot accept less. */
+export const STAKING_MIN_DEPOSIT = 1_000_000_000_000_000_000_000_000n; // 1 NEAR
+
 /** Storage fee the pool charges once per account, in yocto. */
 export const STORAGE_COST = 5_000_000_000_000_000_000_000n; // 0.005 NEAR

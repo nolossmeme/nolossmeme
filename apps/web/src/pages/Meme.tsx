@@ -1,4 +1,5 @@
 import {
+  STAKING_MIN_DEPOSIT,
   actions,
   bpsToPercent,
   formatDuration,
@@ -169,11 +170,13 @@ function PositionCard({
   const principal = BigInt(me?.principal ?? 0);
   const balance = BigInt(me?.meme_balance ?? 0);
   const odds = me ? winChance(BigInt(me.weight), totalWeight) : 0;
+  const poolMin = BigInt(state?.params.min_deposit ?? 0);
+  const minDeposit = poolMin > STAKING_MIN_DEPOSIT ? poolMin : STAKING_MIN_DEPOSIT;
 
   const submit = async () => {
     if (tab === "deposit") {
       const yocto = parseNear(amount || "0");
-      if (yocto <= 0n) return;
+      if (yocto < minDeposit) return;
       if (await tx.send(actions.deposit(pool, yocto, me?.registered ?? false), "Deposit"))
         setAmount("");
     } else if (tab === "withdraw") {
@@ -246,7 +249,7 @@ function PositionCard({
             {me &&
               !me.registered &&
               " First deposit adds a one-time 0.005 Ⓝ storage fee (refundable)."}
-            {state && ` Minimum ${formatNear(state.params.min_deposit, 2)} Ⓝ.`}
+            {` Minimum ${formatNear(minDeposit, 2)} Ⓝ (Meta Pool's floor).`}
           </p>
         </>
       )}
@@ -281,7 +284,14 @@ function PositionCard({
           </p>
         </>
       )}
-      <button className="btn-primary" disabled={tx.pending} onClick={() => void submit()}>
+      <button
+        className="btn-primary"
+        disabled={
+          tx.pending ||
+          (tab === "deposit" && amount !== "" && parseNear(amount || "0") < minDeposit)
+        }
+        onClick={() => void submit()}
+      >
         {tx.pending
           ? "Confirm in wallet…"
           : tx.signedAccountId

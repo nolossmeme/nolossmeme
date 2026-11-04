@@ -6,7 +6,10 @@
       // GitHub Pages serves this for deep links. The dApp lives under /app; stash the path and
       // send the browser to the right entry point.
       var path = location.pathname;
-      var root = path.indexOf("/nolossmeme/") === 0 ? "/nolossmeme/" : "/";
+      var root =
+        location.hostname.endsWith("github.io") && path.indexOf("/nolossmeme/") === 0
+          ? "/nolossmeme/"
+          : "/";
       var app = root + "app/";
       if (path.indexOf(app) === 0) {
         sessionStorage.setItem("nlm:path", path + location.search);

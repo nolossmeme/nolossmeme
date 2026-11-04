@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["meme-pool", "mock-metapool", "integration-tests"]
+members = ["meme-pool", "factory", "mock-metapool", "integration-tests"]
 
 [workspace.package]
 edition = "2024"

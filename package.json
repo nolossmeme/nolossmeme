@@ -1,0 +1,33 @@
+{
+  "name": "nolossmeme",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Memecoins you cannot lose on. NEAR HACKATHON 2026 monorepo.",
+  "license": "MIT",
+  "packageManager": "pnpm@10.20.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "prepare": "husky",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "pnpm -r --if-present lint",
+    "test": "pnpm -r --if-present test",
+    "build": "pnpm -r --if-present build",
+    "contracts:build": "cd contracts && cargo near build non-reproducible-wasm --locked",
+    "contracts:test": "cd contracts && cargo test --workspace",
+    "contracts:lint": "cd contracts && cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.2",
+    "prettier": "^3.6.2"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,json,md,yml,yaml,css}": "prettier --write",
+    "*.rs": "rustfmt --edition 2024"
+  }
+}

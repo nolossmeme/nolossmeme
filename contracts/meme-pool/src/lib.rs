@@ -27,6 +27,8 @@ mod vault;
 mod views;
 
 #[cfg(test)]
+mod tests;
+
 use near_contract_standards::fungible_token::FungibleToken;
 use near_contract_standards::fungible_token::metadata::{FT_METADATA_SPEC, FungibleTokenMetadata};
 use near_sdk::store::{IterableMap, LazyOption, Vector};

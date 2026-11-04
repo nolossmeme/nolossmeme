@@ -209,9 +209,8 @@ describe("Rpc.touchedAccounts", async () => {
     () =>
       Promise.resolve(new Response(JSON.stringify(body), { status: 200 }));
   it("returns the set of touched accounts", async () => {
-    const rpc = new Rpc(
-      "http://rpc",
-      fake({
+    const rpc = new Rpc("http://rpc", {
+      fetchImpl: fake({
         result: {
           changes: [
             { type: "account_touched", account_id: "a" },
@@ -220,14 +219,13 @@ describe("Rpc.touchedAccounts", async () => {
           ],
         },
       }),
-    );
+    });
     expect([...(await rpc.touchedAccounts(1))].sort()).toEqual(["a", "b"]);
   });
   it("maps unknown blocks to UnknownBlock", async () => {
-    const rpc = new Rpc(
-      "http://rpc",
-      fake({ error: { name: "HANDLER_ERROR", cause: { name: "UNKNOWN_BLOCK" } } }),
-    );
+    const rpc = new Rpc("http://rpc", {
+      fetchImpl: fake({ error: { name: "HANDLER_ERROR", cause: { name: "UNKNOWN_BLOCK" } } }),
+    });
     await expect(rpc.touchedAccounts(5)).rejects.toBeInstanceOf(UnknownBlock);
   });
 });

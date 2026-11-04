@@ -16,7 +16,7 @@ Mechanics** (primary), Unstoppable DeFi, Social Money, Open Innovation.
 | Live on testnet | factory [`nolossmeme.testnet`](https://testnet.nearblocks.io/address/nolossmeme.testnet), first pool [`dogn.nolossmeme.testnet`](https://testnet.nearblocks.io/address/dogn.nolossmeme.testnet) (hourly draws) |
 | Staking         | Meta Pool testnet [`meta-v2.pool.testnet`](https://testnet.nearblocks.io/address/meta-v2.pool.testnet) (stNEAR)                                                                                                |
 | Keeper          | [`keeper.nolossmeme.testnet`](https://testnet.nearblocks.io/address/keeper.nolossmeme.testnet), GitHub Actions cron every 15 min                                                                               |
-| Web app         | `pnpm --filter @nolossmeme/web dev` (see step 5 below)                                                                                                                                                         |
+| Web app         | **<https://nolossmeme.github.io/nolossmeme/>** (GitHub Pages, auto-deployed from `main`), or `pnpm --filter @nolossmeme/web dev` (step 5 below)                                                                |
 | Demo post       | _added at submission_                                                                                                                                                                                          |
 
 <p align="center"><img src="docs/screenshots/meme.png" alt="Pool page" width="800"></p>

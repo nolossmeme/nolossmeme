@@ -11,6 +11,8 @@ export default {
         "mock",
         "sdk",
         "web",
+        "landing",
+        "ui",
         "keeper",
         "sim",
         "ci",

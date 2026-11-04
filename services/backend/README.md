@@ -19,7 +19,7 @@ pnpm --filter @nolossmeme/backend backfill 276200000   # one-off range, then exi
 pnpm --filter @nolossmeme/backend test
 ```
 
-Both upstreams throttle: the block archive at roughly 1 request per second sustained, the free RPC at about 2 per second for `EXPERIMENTAL_changes_in_block`. The defaults (`NEARDATA_RPS=1`, `SCAN_CONCURRENCY=1`, `RPC_RPS=2`, `RPC_CONCURRENCY=2`) stay under that and back off on 429. Sparse scanning asks the RPC which accounts a block touched and fetches only blocks that touched ours, so following the head costs about one RPC call per block (real time) and a backfill of the ~9 000 blocks since the factory deploy takes about an hour and a half.
+Both upstreams throttle: the block archive at roughly 1 request per second sustained, the free RPC at about 2 per second for `EXPERIMENTAL_changes_in_block`. The defaults (`NEARDATA_RPS=1`, `SCAN_CONCURRENCY=1`, `RPC_RPS=2`, `RPC_CONCURRENCY=2`) stay under that and back off on 429. `RPC_URLS` rotates several free endpoints for the pre-filter (defaults: FastNEAR, FastNEAR archival, rpc.testnet.near.org), so throughput scales with the number of endpoints. Sparse scanning asks the RPC which accounts a block touched and fetches only blocks that touched ours, so following the head costs about one RPC call per block (real time) and a backfill of the ~9 000 blocks since the factory deploy takes about an hour and a half.
 
 `ROLE` splits the process for scaling or local work: `ROLE=api` serves reads only (safe next to a running backfill), `ROLE=scanner,jobs` indexes without HTTP; default `all`.
 

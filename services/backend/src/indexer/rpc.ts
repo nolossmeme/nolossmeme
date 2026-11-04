@@ -12,21 +12,32 @@ interface RpcResponse<T> {
   error?: { name?: string; cause?: { name?: string }; message?: string };
 }
 
-export class Rpc {
-  private readonly limiter: RateLimiter;
-  private readonly fetchImpl: typeof fetch;
+interface Endpoint {
+  url: string;
+  limiter: RateLimiter;
+}
 
-  constructor(
-    private readonly url: string,
-    opts: { rps?: number; fetchImpl?: typeof fetch } = {},
-  ) {
-    this.limiter = new RateLimiter(opts.rps ?? 6);
+/** JSON-RPC over one or more endpoints, round robin, each with its own rate limit. */
+export class Rpc {
+  private readonly endpoints: Endpoint[];
+  private readonly fetchImpl: typeof fetch;
+  private next = 0;
+
+  constructor(urls: string | string[], opts: { rps?: number; fetchImpl?: typeof fetch } = {}) {
+    const list = Array.isArray(urls) ? urls : [urls];
+    if (list.length === 0) throw new Error("at least one rpc url is required");
+    this.endpoints = list.map((url) => ({ url, limiter: new RateLimiter(opts.rps ?? 2) }));
     this.fetchImpl = opts.fetchImpl ?? fetch;
   }
 
+  get size(): number {
+    return this.endpoints.length;
+  }
+
   private async call<T>(method: string, params: unknown): Promise<T> {
-    await this.limiter.take();
-    const res = await this.fetchImpl(this.url, {
+    const ep = this.endpoints[this.next++ % this.endpoints.length]!;
+    await ep.limiter.take();
+    const res = await this.fetchImpl(ep.url, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ jsonrpc: "2.0", id: "nlm", method, params }),

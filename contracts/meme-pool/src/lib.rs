@@ -18,6 +18,7 @@
 //! - [`views`]: read-only snapshots
 mod constants;
 mod draw;
+mod events;
 mod math;
 mod redeem;
 mod tickets;

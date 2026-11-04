@@ -32,5 +32,10 @@
   "lint-staged": {
     "*.{ts,tsx,js,jsx,mjs,json,md,yml,yaml,css,html}": "prettier --write",
     "*.rs": "rustfmt --edition 2024"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }

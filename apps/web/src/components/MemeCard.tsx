@@ -10,7 +10,7 @@ export function MemeCard({ meme }: { meme: MemeInfo }) {
   return (
     <Link
       to={`/m/${meme.slug}`}
-      className="card p-5 flex flex-col gap-4 hover:border-lime/50 transition"
+      className="card p-5 flex flex-col gap-4 transition hover:-translate-y-0.5 hover:border-lime/40"
     >
       <div className="flex items-center gap-3">
         <MemeIcon icon={meme.icon} symbol={meme.symbol} />
@@ -19,7 +19,7 @@ export function MemeCard({ meme }: { meme: MemeInfo }) {
           <div className="text-xs text-muted font-mono">${meme.symbol}</div>
         </div>
         <div className="ml-auto text-right">
-          <div className="text-[10px] uppercase tracking-wider text-muted">Next draw</div>
+          <div className="kicker">Next draw</div>
           <Countdown
             targetMs={state ? nsToDate(state.next_draw_at).getTime() : undefined}
             dueLabel="Due now"
@@ -28,17 +28,17 @@ export function MemeCard({ meme }: { meme: MemeInfo }) {
       </div>
       <dl className="grid grid-cols-3 gap-3 text-sm">
         <div>
-          <dt className="text-[10px] uppercase tracking-wider text-muted">Locked</dt>
+          <dt className="kicker">Locked</dt>
           <dd className="font-mono">{state ? `${formatNear(state.total_principal, 1)} Ⓝ` : "…"}</dd>
         </div>
         <div>
-          <dt className="text-[10px] uppercase tracking-wider text-muted">Floor</dt>
+          <dt className="kicker">Floor</dt>
           <dd className="font-mono text-lime">
             {state ? `${formatNear(state.floor_price, 6)} Ⓝ` : "…"}
           </dd>
         </div>
         <div>
-          <dt className="text-[10px] uppercase tracking-wider text-muted">Jackpot</dt>
+          <dt className="kicker">Jackpot</dt>
           <dd className="font-mono">
             {state
               ? `${formatMeme((BigInt(state.emission_now) * BigInt(state.params.jackpot_bps)) / 10_000n, 0)}`

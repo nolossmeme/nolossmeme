@@ -1,0 +1,25 @@
+name: sim
+
+on:
+  push:
+    branches: [main]
+    paths: ["tools/sim/**", ".github/workflows/sim.yml"]
+  pull_request:
+    paths: ["tools/sim/**", ".github/workflows/sim.yml"]
+
+jobs:
+  test:
+    name: pytest and chart
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/sim
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv run --with matplotlib --with pytest python -m pytest -q
+      - run: uv run --with matplotlib python -m nolossmeme_sim.cli --out output
+      - uses: actions/upload-artifact@v4
+        with:
+          name: projection
+          path: tools/sim/output

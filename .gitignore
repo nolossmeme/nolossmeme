@@ -35,3 +35,6 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .ruff_cache/
+
+# backend local database
+services/backend/data/

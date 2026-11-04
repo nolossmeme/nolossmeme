@@ -54,7 +54,7 @@ export function MemePage() {
       <header className="flex flex-wrap items-center gap-4">
         <MemeIcon icon={meme.icon} symbol={meme.symbol} size={56} />
         <div>
-          <h1 className="text-3xl font-bold">
+          <h1 className="display text-3xl sm:text-4xl">
             {meme.name} <span className="text-muted font-mono text-xl">${meme.symbol}</span>
           </h1>
           <a
@@ -67,7 +67,7 @@ export function MemePage() {
           </a>
         </div>
         <div className="ml-auto card px-5 py-3 text-right">
-          <div className="text-[10px] uppercase tracking-wider text-muted">Next draw</div>
+          <div className="kicker">Next draw</div>
           <div className="text-2xl">
             <Countdown targetMs={state ? nsToDate(state.next_draw_at).getTime() : undefined} />
           </div>
@@ -206,15 +206,15 @@ function PositionCard({
       </div>
       <dl className="grid grid-cols-3 gap-3 text-sm">
         <div>
-          <dt className="text-[10px] uppercase tracking-wider text-muted">Locked</dt>
+          <dt className="kicker">Locked</dt>
           <dd className="font-mono">{formatNear(principal, 3)} Ⓝ</dd>
         </div>
         <div>
-          <dt className="text-[10px] uppercase tracking-wider text-muted">{symbol}</dt>
+          <dt className="kicker">{symbol}</dt>
           <dd className="font-mono">{formatMeme(balance, 2)}</dd>
         </div>
         <div>
-          <dt className="text-[10px] uppercase tracking-wider text-muted">Odds now</dt>
+          <dt className="kicker">Odds now</dt>
           <dd className="font-mono text-lime">{(odds * 100).toFixed(2)}%</dd>
         </div>
       </dl>

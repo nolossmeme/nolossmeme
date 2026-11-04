@@ -21,47 +21,31 @@ export function HomePage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <section className="grid lg:grid-cols-[1.2fr_1fr] gap-8 items-center">
+      <section className="flex flex-wrap items-end justify-between gap-6">
         <div>
-          <h1 className="text-4xl sm:text-5xl font-bold leading-tight">
-            Memecoins you <span className="text-lime">can't lose on</span>.
-          </h1>
-          <p className="mt-4 text-lg text-muted max-w-xl">
-            Deposit NEAR. Keep every yocto. Your deposit earns staking yield, and only that yield is
-            turned into meme tokens and raffled off. Burn any token for its share of the treasury,
-            so the floor never hits zero.
+          <span className="kicker">Live memes</span>
+          <h1 className="display mt-2 text-4xl sm:text-5xl">Pick a pool, keep your NEAR.</h1>
+          <p className="mt-3 max-w-xl text-muted">
+            Every pool stakes with Meta Pool and raffles only the yield. Deposits are withdrawable
+            at face value at any time.
           </p>
-          <div className="mt-6 flex gap-3">
-            <a href="#memes" className="btn-primary">
-              Pick a meme
-            </a>
-            <Link to="/launch" className="btn-secondary">
-              Launch yours
-            </Link>
-          </div>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <StatTile
-            label="NEAR locked"
-            value={`${formatNear(tvl, 1)} Ⓝ`}
-            hint="100% withdrawable"
-          />
-          <StatTile
-            label="Treasury backing"
-            value={`${formatNear(treasury, 3)} Ⓝ`}
-            hint="from yield only"
-            accent
-          />
-          <StatTile label="Memes" value={memes?.length ?? "…"} />
-          <StatTile label="Draws so far" value={draws} />
-        </div>
+        <Link to="/launch" className="btn-accent">
+          Launch yours
+        </Link>
       </section>
-
-      <section id="memes">
-        <div className="flex items-end justify-between mb-4">
-          <h2 className="text-xl font-semibold">Live memes</h2>
-          <span className="text-xs text-muted">updates every 15s</span>
-        </div>
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatTile label="NEAR locked" value={`${formatNear(tvl, 1)} Ⓝ`} hint="100 % withdrawable" />
+        <StatTile
+          label="Treasury backing"
+          value={`${formatNear(treasury, 4)} Ⓝ`}
+          hint="from yield only"
+          accent
+        />
+        <StatTile label="Memes" value={memes?.length ?? "…"} />
+        <StatTile label="Draws so far" value={draws} />
+      </section>
+      <section>
         {isLoading && <p className="text-muted">Loading…</p>}
         {error && <p className="text-red">Could not reach the factory: {String(error)}</p>}
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">

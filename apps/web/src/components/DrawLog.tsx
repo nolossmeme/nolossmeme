@@ -14,7 +14,7 @@ export function DrawLog({ draws, symbol }: { draws: Draw[]; symbol: string }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
-        <thead className="text-[10px] uppercase tracking-wider text-muted text-left">
+        <thead className="kicker text-left">
           <tr>
             <th className="py-2 pr-3">Epoch</th>
             <th className="py-2 pr-3">When</th>

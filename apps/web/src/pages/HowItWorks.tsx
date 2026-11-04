@@ -36,7 +36,7 @@ export function HowItWorksPage() {
   return (
     <div className="max-w-3xl flex flex-col gap-10">
       <section>
-        <h1 className="text-3xl font-bold">How it works</h1>
+        <h1 className="display text-3xl sm:text-4xl">How it works</h1>
         <p className="mt-3 text-muted">
           PoolTogether-style prize savings, pointed at memecoins. The joke has rules, and the rules
           live in the contract.

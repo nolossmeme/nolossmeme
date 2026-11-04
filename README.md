@@ -65,7 +65,9 @@ Prerequisites: Rust (the `contracts/rust-toolchain.toml` pins 1.96), [`cargo-nea
    → see the keeper list every pool and print `skip (epoch ends in Ns)` or `would draw epoch #N`.
 7. `cd tools/sim && uv run --with matplotlib --with pytest python -m pytest -q && uv run --with matplotlib python -m nolossmeme_sim.cli --out output`
    → see **4 tests pass** and `output/projection.png` regenerated with the table printed above it.
-8. Read the chain directly (no tooling needed):
+8. `pnpm --filter @nolossmeme/backend test && pnpm --filter @nolossmeme/backend dev`, then `curl localhost:8787/health`
+   → see **10 backend tests pass** (parser on recorded testnet blocks, store, API, rate limiter), then the indexer follow the chain from the factory deploy and `/health` report its cursor; `/pools/dogn.factory.nolossmeme.testnet/activity` lists deposits, check-ins and draws. With `VITE_INDEXER_URL` set, the web app shows an activity feed and TVL/treasury/floor over time.
+9. Read the chain directly (no tooling needed):
    ```bash
    curl -s https://test.rpc.fastnear.com -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"query","params":{"request_type":"call_function","finality":"final","account_id":"dogn.factory.nolossmeme.testnet","method_name":"get_state","args_base64":"e30="}}' | python3 -c 'import sys,json;print(bytes(json.load(sys.stdin)["result"]["result"]).decode())'
    ```
@@ -81,6 +83,7 @@ Prerequisites: Rust (the `contracts/rust-toolchain.toml` pins 1.96), [`cargo-nea
 | [`contracts/integration-tests`](contracts/integration-tests) | near-sandbox end-to-end tests                                                                    | near-sandbox 0.4, near-api-rs                |
 | [`packages/sdk`](packages/sdk)                               | Typed RPC client, wallet-agnostic transaction builders, contract math mirrors                    | TypeScript, near-api-js 7                    |
 | [`apps/web`](apps/web)                                       | Memes list, pool page, launch form with 60-day projection, how-it-works                          | Vite, React 19, Tailwind 4, near-connect     |
+| [`services/backend`](services/backend)                       | Indexer (block scanner over FastNEAR's archive), REST API, snapshot job, optional keeper worker  | TypeScript, Hono, libsql                     |
 | [`tools/keeper`](tools/keeper)                               | Calls `draw` where due; cron in `.github/workflows/keeper.yml`                                   | TypeScript                                   |
 | [`tools/sim`](tools/sim)                                     | Tokenomics simulation and charts                                                                 | Python                                       |
 
@@ -139,7 +142,7 @@ pnpm lint && pnpm test       # TypeScript packages
 pnpm --filter @nolossmeme/web build
 ```
 
-CI: `contracts` (fmt, clippy, unit, sandbox), `web` (format, lint, test, build), `sim` (pytest + chart), `sonar` (SonarQube Cloud), `keeper` (cron). See [CONTRIBUTING.md](CONTRIBUTING.md) for the branch and commit conventions.
+CI: `contracts` (fmt, clippy, unit, sandbox), `web` (format, lint, test, build for sdk, ui, landing, web, keeper, backend), `sim` (pytest + chart), `sonar` (SonarQube Cloud), `keeper` (cron). The backend ships as a Docker image (`services/backend/Dockerfile`); set the repository variable `INDEXER_URL` and the Pages builds point at it. See [CONTRIBUTING.md](CONTRIBUTING.md) for the branch and commit conventions.
 
 ## Hackathon notes
 

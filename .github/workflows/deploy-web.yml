@@ -32,11 +32,13 @@ jobs:
         env:
           VITE_BASE: /nolossmeme/
           VITE_APP_URL: /nolossmeme/app/
+          VITE_INDEXER_URL: ${{ vars.INDEXER_URL }}
       - name: Build dApp (under /app)
         run: pnpm --filter @nolossmeme/web build
         env:
           VITE_BASE: /nolossmeme/app/
           VITE_LANDING_URL: /nolossmeme/
+          VITE_INDEXER_URL: ${{ vars.INDEXER_URL }}
       - name: Assemble one Pages artifact
         run: |
           mkdir -p site

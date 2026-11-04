@@ -2,6 +2,7 @@
 # Deploy a fresh factory to testnet and launch a first pool.
 #
 #   contracts/scripts/deploy-testnet.sh <factory-account.testnet> [slug] [symbol] [name]
+#   e.g. contracts/scripts/deploy-testnet.sh factory.nolossmeme.testnet dogn DOGN "Doge of NEAR"
 #
 # Requires cargo-near and near-cli-rs, and a full-access key for the factory account in
 # the legacy keychain (~/.near-credentials). The pool code is stored once and frozen.
@@ -40,7 +41,7 @@ near contract call-function as-transaction "$FACTORY" create_meme json-args "{
   \"slug\":\"$SLUG\",\"name\":\"$NAME\",\"symbol\":\"$SYMBOL\",\"icon\":null,
   \"params\":{\"epoch_length_ns\":\"3600000000000\",\"initial_emission\":\"1000000000000000000000\",
   \"halving_every\":168,\"jackpot_bps\":7000,\"streak_step_bps\":1000,\"max_streak_bonus_bps\":5000,
-  \"min_deposit\":\"100000000000000000000000\"}}" \
+  \"min_deposit\":\"1000000000000000000000000\"}}" \
   prepaid-gas '300 Tgas' attached-deposit '3.5 NEAR' sign-as "$FACTORY" $NET
 
 echo "==> done: factory=$FACTORY pool=$SLUG.$FACTORY"

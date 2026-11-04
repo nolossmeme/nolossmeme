@@ -21,7 +21,7 @@ describe("NoLossMemeClient", () => {
       method: "get_state",
       args: {},
     });
-    expect(callFunction.mock.calls[0]?.[0].contractId).toBe("nolossmeme.testnet");
+    expect(callFunction.mock.calls[0]?.[0].contractId).toBe("factory.nolossmeme.testnet");
   });
 
   it("throws on empty results", async () => {

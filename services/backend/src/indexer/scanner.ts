@@ -89,8 +89,10 @@ export class Scanner {
                 await sleep(e.retryAfterMs + Math.random() * 500);
                 continue;
               }
-              if (attempt >= 5) throw e;
-              await sleep(300 * 2 ** attempt);
+              if (attempt >= 20) throw e;
+              if (attempt % 5 === 4)
+                log.warn("rpc retry", { height: h, attempt, error: String(e).slice(0, 120) });
+              await sleep(Math.min(10_000, 300 * 2 ** attempt));
             }
           }
         }),
@@ -119,8 +121,10 @@ export class Scanner {
                 await sleep(e.retryAfterMs);
                 continue; // never give up on a block because the archive throttled us
               }
-              if (attempt >= 5) throw e;
-              await sleep(500 * 2 ** attempt);
+              if (attempt >= 20) throw e;
+              if (attempt % 5 === 4)
+                log.warn("archive retry", { height: h, attempt, error: String(e).slice(0, 120) });
+              await sleep(Math.min(15_000, 500 * 2 ** attempt));
             }
           }
         }),

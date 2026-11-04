@@ -9,8 +9,8 @@ const Env = z.object({
   NEARDATA_URL: z.string().url().optional(),
   DATABASE_URL: z.string().default("file:./data/nolossmeme.db"),
   DATABASE_AUTH_TOKEN: z.string().optional(),
-  /** First block to index. Defaults to a height shortly before the testnet factory was deployed. */
-  START_BLOCK: z.coerce.number().int().positive().default(276_200_000),
+  /** First block to index. Defaults to a height just before `factory.nolossmeme.testnet` was deployed (2026-11-04 14:5x UTC). */
+  START_BLOCK: z.coerce.number().int().positive().default(276_209_400),
   SCAN_CONCURRENCY: z.coerce.number().int().min(1).max(16).default(2),
   /** Pre-filter blocks with `EXPERIMENTAL_changes_in_block` (cheap on the RPC) before fetching them from the archive. */
   SPARSE_SCAN: z.coerce.boolean().default(true),

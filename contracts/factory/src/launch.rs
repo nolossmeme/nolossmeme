@@ -91,12 +91,15 @@ impl Contract {
             Promise::new(info.creator).transfer(deposit).detach();
             return None;
         }
-        log!(
-            "launched {} at {} by {}",
-            info.symbol,
-            info.account_id,
-            info.creator
-        );
+        env::log_str(&format!(
+            "EVENT_JSON:{}",
+            near_sdk::serde_json::json!({
+                "standard": "nolossmeme",
+                "version": "1.0.0",
+                "event": "launch",
+                "data": [{ "slug": info.slug, "account_id": info.account_id, "creator": info.creator, "symbol": info.symbol, "name": info.name }]
+            })
+        ));
         self.memes.insert(info.slug.clone(), info.clone());
         Some(info)
     }

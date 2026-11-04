@@ -21,6 +21,7 @@ mod draw;
 mod math;
 mod redeem;
 mod tickets;
+mod token;
 mod types;
 mod vault;
 

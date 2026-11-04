@@ -1,0 +1,45 @@
+name: web
+
+on:
+  push:
+    branches: [main]
+    paths:
+      [
+        "apps/**",
+        "packages/**",
+        "tools/**",
+        "package.json",
+        "pnpm-lock.yaml",
+        ".github/workflows/web.yml",
+      ]
+  pull_request:
+    paths:
+      [
+        "apps/**",
+        "packages/**",
+        "tools/**",
+        "package.json",
+        "pnpm-lock.yaml",
+        ".github/workflows/web.yml",
+      ]
+
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: format, lint, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm build

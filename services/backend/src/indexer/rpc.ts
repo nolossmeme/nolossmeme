@@ -30,6 +30,7 @@ export class Rpc {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ jsonrpc: "2.0", id: "nlm", method, params }),
+      signal: AbortSignal.timeout(15_000),
     });
     if (res.status === 429) {
       const ra = Number(res.headers.get("retry-after"));

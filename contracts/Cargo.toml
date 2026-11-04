@@ -1,0 +1,20 @@
+[workspace]
+resolver = "3"
+members = ["meme-pool"]
+
+[workspace.package]
+edition = "2024"
+version = "0.1.0"
+repository = "https://github.com/web3jogja/nolossmeme"
+
+[workspace.dependencies]
+near-sdk = "5.30"
+near-contract-standards = "5.30"
+
+[profile.release]
+codegen-units = 1
+opt-level = "z"
+lto = true
+debug = false
+panic = "abort"
+overflow-checks = true

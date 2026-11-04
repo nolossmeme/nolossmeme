@@ -1,0 +1,21 @@
+[package]
+name = "meme-pool"
+description = "NoLossMeme pool: NEP-141 memecoin minted only from staking yield, principal always withdrawable"
+version.workspace = true
+edition.workspace = true
+repository.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+near-sdk = { workspace = true }
+near-contract-standards = { workspace = true }
+primitive-types = { version = "0.13", default-features = false }
+
+[dev-dependencies]
+near-sdk = { workspace = true, features = ["unit-testing"] }
+
+[lints.rust.unexpected_cfgs]
+level = "warn"
+check-cfg = ['cfg(near)']

@@ -29,3 +29,9 @@ coverage/
 
 # Simulation output
 tools/sim/output/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/

@@ -24,7 +24,7 @@ Deadline: **14 Nov 2026, 23:59 UTC**. Form: <https://nearhackathon.com/#apply>.
 >
 > @NEARProtocol #NEARHackathon
 
-Attach `docs/demo.mp4` (40 s scripted walkthrough of the hosted app, no wallet) or, better, a screen recording that also shows a wallet deposit, check-in and the draw log, plus the three screenshots in `docs/screenshots/`.
+Attach `docs/demo.mp4` (44 s scripted walkthrough of the hosted app, no wallet) or, better, a screen recording that also shows a wallet deposit, check-in and the draw log, plus the three screenshots in `docs/screenshots/`.
 
 ## Form fields
 

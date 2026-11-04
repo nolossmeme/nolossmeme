@@ -16,7 +16,7 @@ jobs:
         working-directory: tools/sim
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
       - run: uv run --with matplotlib --with pytest python -m pytest -q
       - run: uv run --with matplotlib python -m nolossmeme_sim.cli --out output
       - uses: actions/upload-artifact@v7

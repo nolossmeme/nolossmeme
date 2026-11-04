@@ -32,6 +32,22 @@ await scanner.refreshRegistry();
 const from = Number(fromArg ?? cfg.START_BLOCK);
 const to = Number(toArg ?? (await data.lastFinalHeight()));
 log.info("backfill", { from, to });
-const stored = await scanner.indexRange(from, to);
+// Work in chunks so the cursor advances and progress is visible on long ranges.
+const CHUNK = 500;
+let stored = 0;
+const t0 = Date.now();
+for (let start = from; start <= to; start += CHUNK) {
+  const end = Math.min(to, start + CHUNK - 1);
+  stored += await scanner.indexRange(start, end);
+  const done = end - from + 1;
+  const rate = done / Math.max(1, (Date.now() - t0) / 1000);
+  log.info("backfill progress", {
+    cursor: end,
+    done,
+    left: to - end,
+    stored,
+    blocksPerSec: Number(rate.toFixed(1)),
+  });
+}
 log.info("backfill done", { stored });
 db.close();

@@ -1,6 +1,7 @@
 //! Unit tests run the contract in-process with `testing_env!`. Cross-contract callbacks
 //! are invoked directly with the result Meta Pool would have returned.
 mod draw;
+mod events;
 mod redeem;
 mod regression;
 mod tickets;

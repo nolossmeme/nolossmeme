@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+target/
+dist/
+build/
+out/
+*.wasm
+*.tsbuildinfo
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+neardev/
+*.pem
+*.key
+
+# Tooling
+.claude/
+.idea/
+.vscode/
+.DS_Store
+coverage/
+.scannerwork/
+.sonar/
+
+# Simulation output
+tools/sim/output/

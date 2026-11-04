@@ -8,6 +8,7 @@ import {
   nsToSeconds,
   parseMeme,
   parseNear,
+  secondsUntilDraw,
   splitEmission,
   winChance,
   type AccountView,
@@ -45,7 +46,7 @@ export function MemePage() {
     ? splitEmission(state.params, state.epoch_index, Math.max(state.checkins_this_epoch, 1))
     : null;
   const totalWeight = (depositors ?? []).reduce((acc, [, a]) => acc + BigInt(a.weight), 0n);
-  const drawDue = state ? nsToSeconds(state.next_draw_at) * 1000 <= Date.now() : false;
+  const drawDue = state ? secondsUntilDraw(state) === 0 : false;
 
   return (
     <div className="flex flex-col gap-8">

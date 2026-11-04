@@ -7,10 +7,11 @@ export default tseslint.config(
   { ignores: ["dist/**"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
-  reactHooks.configs["recommended-latest"],
   reactRefresh.configs.vite,
   {
+    plugins: { "react-hooks": reactHooks },
     rules: {
+      ...reactHooks.configs.recommended.rules,
       "@typescript-eslint/consistent-type-imports": "error",
     },
   },

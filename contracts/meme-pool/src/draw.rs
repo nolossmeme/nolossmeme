@@ -37,10 +37,18 @@ impl Contract {
         )
     }
 
+    /// Settles the epoch. Returns `None` (and unlocks) if the price lookup failed, so a
+    /// transient RPC or gas failure can never leave the pool stuck in `draw_in_progress`.
     #[private]
-    pub fn on_draw_price(&mut self, #[callback_result] price: Result<U128, PromiseError>) -> Draw {
+    pub fn on_draw_price(
+        &mut self,
+        #[callback_result] price: Result<U128, PromiseError>,
+    ) -> Option<Draw> {
         self.draw_in_progress = false;
-        let price = price.expect("price lookup failed").0;
+        let Ok(U128(price)) = price else {
+            log!("price lookup failed, draw aborted; call draw again");
+            return None;
+        };
         self.st_near_price = price;
         let now = env::block_timestamp();
 
@@ -84,7 +92,7 @@ impl Contract {
             checkins,
             yield_shares
         );
-        draw
+        Some(draw)
     }
 }
 

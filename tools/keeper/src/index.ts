@@ -65,6 +65,10 @@ async function main(): Promise<void> {
         gas: teraToGas("300"),
         deposit: 0n,
       });
+      if (!draw) {
+        console.log(`[keeper] ${pool}: price lookup failed, pool unlocked, will retry next run`);
+        continue;
+      }
       console.log(
         `[keeper] ${pool}: drew epoch #${draw.epoch} winner=${draw.winner ?? "none"} jackpot=${formatMeme(draw.jackpot, 0)} ${meme.symbol} yield=${formatNear(draw.yield_near, 6)} Ⓝ`,
       );

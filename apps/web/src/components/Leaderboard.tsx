@@ -19,7 +19,7 @@ export function Leaderboard({
   );
   return (
     <table className="w-full text-sm">
-      <thead className="text-[10px] uppercase tracking-wider text-muted text-left">
+      <thead className="kicker text-left">
         <tr>
           <th className="py-2 pr-3">Depositor</th>
           <th className="py-2 pr-3">Locked</th>

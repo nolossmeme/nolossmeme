@@ -111,7 +111,7 @@ export function LaunchPage() {
           void launch();
         }}
       >
-        <h1 className="text-2xl font-bold">Launch a no-loss meme</h1>
+        <h1 className="display text-2xl sm:text-3xl">Launch a no-loss meme</h1>
         <p className="text-sm text-muted">
           Parameters are written into the contract at launch and can never be changed, not even by
           you.
@@ -281,17 +281,17 @@ export function LaunchPage() {
         {points.length > 0 && (
           <dl className="grid grid-cols-3 gap-3 text-sm">
             <div>
-              <dt className="text-[10px] uppercase tracking-wider text-muted">Supply day 60</dt>
+              <dt className="kicker">Supply day 60</dt>
               <dd className="font-mono">
                 {Number(points.at(-1)!.supply / 10n ** 18n).toLocaleString()}
               </dd>
             </div>
             <div>
-              <dt className="text-[10px] uppercase tracking-wider text-muted">Treasury day 60</dt>
+              <dt className="kicker">Treasury day 60</dt>
               <dd className="font-mono">{formatNear(points.at(-1)!.treasuryNear, 2)} Ⓝ</dd>
             </div>
             <div>
-              <dt className="text-[10px] uppercase tracking-wider text-muted">Floor day 60</dt>
+              <dt className="kicker">Floor day 60</dt>
               <dd className="font-mono text-lime">{formatNear(points.at(-1)!.floor, 8)} Ⓝ</dd>
             </div>
           </dl>

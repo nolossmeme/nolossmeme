@@ -18,43 +18,45 @@ export function Leaderboard({
     BigInt(b[1].principal) > BigInt(a[1].principal) ? 1 : -1,
   );
   return (
-    <table className="w-full text-sm">
-      <thead className="kicker text-left">
-        <tr>
-          <th className="py-2 pr-3">Depositor</th>
-          <th className="py-2 pr-3">Locked</th>
-          <th className="py-2 pr-3">Streak</th>
-          <th className="py-2 pr-3">Odds</th>
-          <th className="py-2 pr-3">Won</th>
-        </tr>
-      </thead>
-      <tbody className="font-mono">
-        {sorted.map(([id, a]) => (
-          <tr key={id} className={`border-t border-border ${id === me ? "text-lime" : ""}`}>
-            <td className="py-2 pr-3">
-              <a
-                className="hover:underline"
-                href={explorerAccount(id)}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {shortAccount(id, 24)}
-              </a>
-            </td>
-            <td className="py-2 pr-3">{formatNear(a.principal, 2)} Ⓝ</td>
-            <td className="py-2 pr-3">
-              {a.streak > 0 ? `🔥 ${a.streak}` : "—"}
-              {a.checked_in_this_epoch && <span className="text-muted"> ✓</span>}
-            </td>
-            <td className="py-2 pr-3">
-              {(winChance(BigInt(a.weight), totalWeight) * 100).toFixed(1)}%
-            </td>
-            <td className="py-2 pr-3">
-              {formatMeme(a.total_won, 0)} {symbol}
-            </td>
+    <div className="overflow-x-auto scrollbar-thin">
+      <table className="w-full text-sm">
+        <thead className="kicker text-left">
+          <tr>
+            <th className="py-2 pr-3">Depositor</th>
+            <th className="py-2 pr-3">Locked</th>
+            <th className="py-2 pr-3">Streak</th>
+            <th className="py-2 pr-3">Odds</th>
+            <th className="py-2 pr-3">Won</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody className="font-mono">
+          {sorted.map(([id, a]) => (
+            <tr key={id} className={`border-t border-border ${id === me ? "text-lime" : ""}`}>
+              <td className="py-2 pr-3">
+                <a
+                  className="hover:underline"
+                  href={explorerAccount(id)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {shortAccount(id, 24)}
+                </a>
+              </td>
+              <td className="py-2 pr-3">{formatNear(a.principal, 2)} Ⓝ</td>
+              <td className="py-2 pr-3">
+                {a.streak > 0 ? `🔥 ${a.streak}` : "—"}
+                {a.checked_in_this_epoch && <span className="text-muted"> ✓</span>}
+              </td>
+              <td className="py-2 pr-3">
+                {(winChance(BigInt(a.weight), totalWeight) * 100).toFixed(1)}%
+              </td>
+              <td className="py-2 pr-3">
+                {formatMeme(a.total_won, 0)} {symbol}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

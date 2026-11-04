@@ -17,7 +17,10 @@
     "build": "pnpm -r --if-present build",
     "contracts:build": "cd contracts && cargo near build non-reproducible-wasm --locked",
     "contracts:test": "cd contracts && cargo test --workspace",
-    "contracts:lint": "cd contracts && cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings"
+    "contracts:lint": "cd contracts && cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings",
+    "test:unit": "pnpm --filter @nolossmeme/sdk build && cd contracts && cargo test --workspace --lib && cd .. && pnpm -r --if-present test",
+    "test:integration": "cd contracts && cargo test -p integration-tests",
+    "test:regression": "pnpm --filter @nolossmeme/sdk build && cd contracts && cargo test --workspace regression && cd .. && pnpm --filter @nolossmeme/sdk --filter @nolossmeme/web --filter @nolossmeme/keeper exec vitest run -t regression"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",

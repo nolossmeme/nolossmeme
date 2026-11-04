@@ -24,6 +24,7 @@ mod tickets;
 mod token;
 mod types;
 mod vault;
+mod views;
 
 #[cfg(test)]
 use near_contract_standards::fungible_token::FungibleToken;

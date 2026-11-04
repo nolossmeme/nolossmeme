@@ -4,11 +4,16 @@ import type { NoLossMemeClient } from "@nolossmeme/sdk";
 import type { Store } from "../db/store.js";
 import { log } from "../log.js";
 import { BlockNotFound, RateLimited, type NearData } from "./neardata.js";
+import { UnknownBlock, type Rpc } from "./rpc.js";
 import { launchedPools, parseBlock, type Watch } from "./parse.js";
 
 export interface ScannerOptions {
   startBlock: number;
+  /** Parallel full-block fetches from the archive (rate limited separately). */
   concurrency: number;
+  /** Ask the RPC which accounts a block touched and fetch only blocks that touched ours. */
+  sparse?: boolean;
+  rpcConcurrency?: number;
   /** Re-read the factory registry every N blocks (new pools may appear through the factory). */
   registryRefreshEvery?: number;
   /** Polling delay when caught up with the head. */
@@ -24,6 +29,7 @@ export class Scanner {
     private readonly data: NearData,
     private readonly store: Store,
     private readonly client: NoLossMemeClient,
+    private readonly rpc: Rpc,
     factory: string,
     private readonly opts: ScannerOptions,
   ) {
@@ -50,13 +56,43 @@ export class Scanner {
   }
 
   /** Index [from, to] inclusive with bounded concurrency; skips heights the chain never produced. */
+  /** Heights in [from, to] whose block touched a watched account (or every height when not sparse). */
+  async candidateHeights(from: number, to: number): Promise<number[]> {
+    const all = Array.from({ length: to - from + 1 }, (_, i) => from + i);
+    if (!this.opts.sparse) return all;
+    const out: number[] = [];
+    const width = this.opts.rpcConcurrency ?? 8;
+    for (let i = 0; i < all.length; i += width) {
+      const slice = all.slice(i, i + width);
+      const touched = await Promise.all(
+        slice.map(async (h) => {
+          for (let attempt = 0; ; attempt++) {
+            try {
+              const accounts = await this.rpc.touchedAccounts(h);
+              return (
+                accounts.has(this.watch.factory) ||
+                [...accounts].some(
+                  (a) => this.watch.pools.has(a) || a.endsWith(`.${this.watch.factory}`),
+                )
+              );
+            } catch (e) {
+              if (e instanceof UnknownBlock) return false;
+              if (attempt >= 5) throw e;
+              await sleep(300 * 2 ** attempt);
+            }
+          }
+        }),
+      );
+      slice.forEach((h, j) => touched[j] && out.push(h));
+    }
+    return out;
+  }
+
   async indexRange(from: number, to: number): Promise<number> {
     let stored = 0;
-    for (let start = from; start <= to; start += this.opts.concurrency) {
-      const heights = Array.from(
-        { length: Math.min(this.opts.concurrency, to - start + 1) },
-        (_, i) => start + i,
-      );
+    const candidates = await this.candidateHeights(from, to);
+    for (let i = 0; i < candidates.length; i += this.opts.concurrency) {
+      const heights = candidates.slice(i, i + this.opts.concurrency);
       const results = await Promise.all(
         heights.map(async (h) => {
           for (let attempt = 0; ; attempt++) {
@@ -78,6 +114,7 @@ export class Scanner {
       stored += results.reduce((a, b) => a + b, 0);
       await this.store.setCursor(heights[heights.length - 1]!);
     }
+    await this.store.setCursor(to);
     return stored;
   }
 

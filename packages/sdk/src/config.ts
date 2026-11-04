@@ -12,14 +12,14 @@ export interface NetworkConfig {
 export const NETWORKS: Record<NetworkId, NetworkConfig> = {
   testnet: {
     networkId: "testnet",
-    rpcUrl: "https://rpc.testnet.near.org",
+    rpcUrl: "https://test.rpc.fastnear.com",
     explorerUrl: "https://testnet.nearblocks.io",
     factory: "nolossmeme.testnet",
     metaPool: "meta-v2.pool.testnet",
   },
   mainnet: {
     networkId: "mainnet",
-    rpcUrl: "https://rpc.mainnet.near.org",
+    rpcUrl: "https://free.rpc.fastnear.com",
     explorerUrl: "https://nearblocks.io",
     // Not deployed yet; the factory must be launched on mainnet first.
     factory: "nolossmeme.near",

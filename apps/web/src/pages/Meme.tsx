@@ -18,16 +18,20 @@ import {
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 
+import { ActivityFeed } from "../components/ActivityFeed";
 import { AmountInput } from "../components/AmountInput";
 import { Countdown } from "../components/Countdown";
 import { DrawLog } from "../components/DrawLog";
 import { FloorChart } from "../components/FloorChart";
 import { Leaderboard } from "../components/Leaderboard";
 import { MemeIcon } from "../components/MemeIcon";
+import { SeriesChart } from "../components/SeriesChart";
 import { StatTile } from "../components/StatTile";
+import { usePoolActivity, usePoolSeries } from "../hooks/useIndexer";
 import { useMeme } from "../hooks/useMemes";
 import { useDepositors, useDraws, useMyPosition, usePoolState } from "../hooks/usePool";
 import { explorerAccount } from "../lib/client";
+import { indexerEnabled } from "../lib/indexer";
 import { useTx } from "../lib/wallet";
 
 export function MemePage() {
@@ -39,6 +43,8 @@ export function MemePage() {
   const { data: depositors } = useDepositors(pool);
   const tx = useTx();
   const { data: me } = useMyPosition(pool, tx.signedAccountId || undefined);
+  const { data: activity } = usePoolActivity(pool);
+  const { data: series } = usePoolSeries(pool);
 
   if (isLoading) return <p className="text-muted">Loading…</p>;
   if (!meme || !pool) return <p className="text-muted">Unknown meme.</p>;
@@ -119,14 +125,27 @@ export function MemePage() {
           tx={tx}
         />
         <div className="card p-5">
-          <h2 className="font-semibold mb-3">Floor price over time</h2>
-          <FloorChart draws={draws ?? []} />
+          <h2 className="font-semibold mb-3">
+            {series && series.length >= 2 ? "Pool over time" : "Floor price over time"}
+          </h2>
+          {series && series.length >= 2 ? (
+            <SeriesChart rows={series} />
+          ) : (
+            <FloorChart draws={draws ?? []} />
+          )}
           <p className="mt-3 text-xs text-muted">
             Floor = treasury ÷ supply. The treasury only receives staking yield, and every{" "}
             {meme.symbol} can be burned for its share.
           </p>
         </div>
       </section>
+
+      {indexerEnabled && (
+        <section className="card p-5">
+          <h2 className="font-semibold mb-3">Activity</h2>
+          <ActivityFeed events={activity ?? []} symbol={meme.symbol} />
+        </section>
+      )}
 
       <section className="card p-5">
         <h2 className="font-semibold mb-3">Draw log</h2>

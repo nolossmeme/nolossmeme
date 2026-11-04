@@ -2,13 +2,17 @@ import { formatNear } from "@nolossmeme/sdk";
 import { useQueries } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
+import { ActivityFeed } from "../components/ActivityFeed";
 import { MemeCard } from "../components/MemeCard";
 import { StatTile } from "../components/StatTile";
+import { useRecentActivity } from "../hooks/useIndexer";
 import { useMemes } from "../hooks/useMemes";
 import { client } from "../lib/client";
+import { indexerEnabled } from "../lib/indexer";
 
 export function HomePage() {
   const { data: memes, isLoading, error } = useMemes();
+  const { data: recent } = useRecentActivity();
   const states = useQueries({
     queries: (memes ?? []).map((m) => ({
       queryKey: ["pool", m.account_id, "state"],
@@ -54,6 +58,15 @@ export function HomePage() {
           ))}
         </div>
       </section>
+      {indexerEnabled && (
+        <section className="card p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold">Recent activity</h2>
+            <span className="text-xs text-muted">from the indexer</span>
+          </div>
+          <ActivityFeed events={recent ?? []} symbol="MEME" showPool />
+        </section>
+      )}
     </div>
   );
 }

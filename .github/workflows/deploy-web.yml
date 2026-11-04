@@ -44,7 +44,7 @@ jobs:
           mkdir -p site/app
           cp -R apps/web/dist/. site/app/
           rm -f site/app/404.html
-      - uses: actions/upload-pages-artifact@v7
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site
 

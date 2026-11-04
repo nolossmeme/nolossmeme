@@ -1,0 +1,36 @@
+name: keeper
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Decide only, do not send transactions
+        type: boolean
+        default: false
+
+concurrency:
+  group: keeper
+  cancel-in-progress: false
+
+jobs:
+  draw:
+    name: draw due epochs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @nolossmeme/sdk build
+      - run: pnpm --filter @nolossmeme/keeper start
+        env:
+          NEAR_NETWORK: testnet
+          KEEPER_ACCOUNT_ID: ${{ secrets.KEEPER_ACCOUNT_ID }}
+          KEEPER_PRIVATE_KEY: ${{ secrets.KEEPER_PRIVATE_KEY }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '' }}

@@ -92,7 +92,7 @@ export class NearData {
     });
     if (res.status === 429) {
       const ra = Number(res.headers.get("retry-after"));
-      throw new RateLimited(Number.isFinite(ra) && ra > 0 ? ra * 1000 : 5_000);
+      throw new RateLimited(Number.isFinite(ra) && ra > 0 ? ra * 1000 : 1_500);
     }
     return res;
   }

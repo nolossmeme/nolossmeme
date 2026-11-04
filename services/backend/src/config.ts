@@ -13,7 +13,7 @@ const Env = z.object({
   START_BLOCK: z.coerce.number().int().positive().default(276_200_000),
   SCAN_CONCURRENCY: z.coerce.number().int().min(1).max(16).default(2),
   /** Requests per second against the block archive (FastNEAR throttles aggressive clients). */
-  NEARDATA_RPS: z.coerce.number().min(0.2).max(50).default(3),
+  NEARDATA_RPS: z.coerce.number().min(0.2).max(50).default(2),
   SNAPSHOT_INTERVAL_MS: z.coerce.number().int().min(10_000).default(300_000),
   PORT: z.coerce.number().int().default(8787),
   CORS_ORIGIN: z.string().default("*"),

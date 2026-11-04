@@ -19,6 +19,8 @@ pnpm --filter @nolossmeme/backend backfill 276200000   # one-off range, then exi
 pnpm --filter @nolossmeme/backend test
 ```
 
+The archive allows roughly 2–3 requests per second per client; the defaults (`NEARDATA_RPS=2`, `SCAN_CONCURRENCY=2`) stay under that and back off on 429. A backfill from the factory deploy (~6 000 blocks) takes under an hour; following the head is real time.
+
 Environment (all optional, see `src/config.ts`): `NEAR_NETWORK`, `FACTORY_ID`, `DATABASE_URL`, `DATABASE_AUTH_TOKEN`, `START_BLOCK`, `SCAN_CONCURRENCY`, `SNAPSHOT_INTERVAL_MS`, `PORT`, `CORS_ORIGIN`, `KEEPER_ACCOUNT_ID`, `KEEPER_PRIVATE_KEY`, `LOG_LEVEL`.
 
 ## Deploy

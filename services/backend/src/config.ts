@@ -34,8 +34,7 @@ const Env = z.object({
 
 /** Free endpoints that serve `EXPERIMENTAL_changes_in_block`; rotating spreads the per-endpoint limits. */
 const DEFAULT_RPC_URLS: Record<NetworkId, string> = {
-  testnet:
-    "https://test.rpc.fastnear.com,https://archival-rpc.testnet.fastnear.com,https://rpc.testnet.near.org",
+  testnet: "https://test.rpc.fastnear.com,https://archival-rpc.testnet.fastnear.com",
   mainnet: "https://free.rpc.fastnear.com,https://archival-rpc.mainnet.fastnear.com",
 };
 

@@ -77,6 +77,10 @@ export class Scanner {
               );
             } catch (e) {
               if (e instanceof UnknownBlock) return false;
+              if (e instanceof RateLimited) {
+                await sleep(e.retryAfterMs);
+                continue;
+              }
               if (attempt >= 5) throw e;
               await sleep(300 * 2 ** attempt);
             }
@@ -84,6 +88,8 @@ export class Scanner {
         }),
       );
       slice.forEach((h, j) => touched[j] && out.push(h));
+      if (i > 0 && i % 2_000 === 0)
+        log.info("prefilter progress", { height: slice[0], candidates: out.length });
     }
     return out;
   }

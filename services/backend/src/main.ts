@@ -29,12 +29,19 @@ async function main(): Promise<void> {
         .catch(() => undefined),
     10_000,
   );
-  const scanner = new Scanner(data, store, client, new Rpc(cfg.rpcUrl), cfg.network.factory, {
-    startBlock: cfg.START_BLOCK,
-    concurrency: cfg.SCAN_CONCURRENCY,
-    sparse: cfg.SPARSE_SCAN,
-    rpcConcurrency: cfg.RPC_CONCURRENCY,
-  });
+  const scanner = new Scanner(
+    data,
+    store,
+    client,
+    new Rpc(cfg.rpcUrl, { rps: cfg.RPC_RPS }),
+    cfg.network.factory,
+    {
+      startBlock: cfg.START_BLOCK,
+      concurrency: cfg.SCAN_CONCURRENCY,
+      sparse: cfg.SPARSE_SCAN,
+      rpcConcurrency: cfg.RPC_CONCURRENCY,
+    },
+  );
 
   const stopSnapshots = startSnapshotJob(store, client, cfg.SNAPSHOT_INTERVAL_MS, () => head);
   const stopKeeper =

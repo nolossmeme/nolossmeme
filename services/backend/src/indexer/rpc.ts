@@ -1,4 +1,5 @@
-/** JSON-RPC helpers. `changesInBlock` is the cheap pre-filter for sparse scanning. */
+/** JSON-RPC helpers. `touchedAccounts` is the cheap pre-filter for sparse scanning. */
+import { RateLimited, RateLimiter } from "./neardata.js";
 
 export class UnknownBlock extends Error {
   constructor(public readonly height: number) {
@@ -12,17 +13,28 @@ interface RpcResponse<T> {
 }
 
 export class Rpc {
+  private readonly limiter: RateLimiter;
+  private readonly fetchImpl: typeof fetch;
+
   constructor(
     private readonly url: string,
-    private readonly fetchImpl: typeof fetch = fetch,
-  ) {}
+    opts: { rps?: number; fetchImpl?: typeof fetch } = {},
+  ) {
+    this.limiter = new RateLimiter(opts.rps ?? 6);
+    this.fetchImpl = opts.fetchImpl ?? fetch;
+  }
 
   private async call<T>(method: string, params: unknown): Promise<T> {
+    await this.limiter.take();
     const res = await this.fetchImpl(this.url, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ jsonrpc: "2.0", id: "nlm", method, params }),
     });
+    if (res.status === 429) {
+      const ra = Number(res.headers.get("retry-after"));
+      throw new RateLimited(Number.isFinite(ra) && ra > 0 ? ra * 1000 : 2_000);
+    }
     if (!res.ok) throw new Error(`${method}: HTTP ${res.status}`);
     const body = (await res.json()) as RpcResponse<T>;
     if (body.error) {

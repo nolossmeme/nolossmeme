@@ -19,7 +19,7 @@ const scanner = new Scanner(
   data,
   store,
   new NoLossMemeClient(cfg.network),
-  new Rpc(cfg.rpcUrl),
+  new Rpc(cfg.rpcUrl, { rps: cfg.RPC_RPS }),
   cfg.network.factory,
   {
     startBlock: cfg.START_BLOCK,

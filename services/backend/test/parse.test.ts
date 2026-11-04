@@ -229,3 +229,68 @@ describe("Rpc.touchedAccounts", async () => {
     await expect(rpc.touchedAccounts(5)).rejects.toBeInstanceOf(UnknownBlock);
   });
 });
+
+describe("parseBlock with nolossmeme events (contracts after #43)", () => {
+  const ev = (event: string, data: Record<string, unknown>) =>
+    `EVENT_JSON:${JSON.stringify({ standard: "nolossmeme", version: "1.0.0", event, data: [data] })}`;
+  it("prefers structured events and does not double count with return values", () => {
+    const draw = { epoch: 4, winner: "bob.testnet", jackpot: "700", checkins: 1, minted: "1000" };
+    const events = parseBlock(
+      synthetic([
+        receipt(
+          pool,
+          "on_deposit",
+          [ev("deposit", { account_id: "alice.testnet", amount: "1000", shares: "300" })],
+          "1000",
+          pool,
+          "a",
+        ),
+        receipt(
+          pool,
+          "check_in",
+          [ev("check_in", { account_id: "alice.testnet", streak: 3, epoch: 4 })],
+          3,
+          "alice.testnet",
+          "b",
+        ),
+        receipt(pool, "on_draw_price", [ev("draw", draw)], draw, pool, "c"),
+        receipt(
+          pool,
+          "on_near_pulled",
+          [ev("withdraw_near", { account_id: "alice.testnet", amount: "990", fee: "10" })],
+          "990",
+          pool,
+          "d",
+        ),
+        receipt(
+          "factory.nolossmeme.testnet",
+          "on_meme_created",
+          [
+            ev("launch", {
+              slug: "wojak",
+              account_id: "wojak.factory.nolossmeme.testnet",
+              creator: "carol.testnet",
+              symbol: "WJK",
+              name: "Wojak",
+            }),
+          ],
+          {},
+          "factory.nolossmeme.testnet",
+          "e",
+        ),
+      ]),
+      watch,
+    );
+    expect(events.map((e) => [e.kind, e.account, e.amount])).toEqual([
+      ["deposit", "alice.testnet", "1000"],
+      ["check_in", "alice.testnet", null],
+      ["draw", "bob.testnet", "700"],
+      ["withdraw_near", "alice.testnet", "990"],
+      ["launch", "carol.testnet", null],
+    ]);
+    expect(events[0]!.data).toEqual({ shares: "300", fee: null });
+    expect(events[1]!.data).toEqual({ streak: 3, epoch: 4 });
+    expect(events[3]!.data).toEqual({ shares: null, fee: "10" });
+    expect(launchedPools(events)).toEqual(["wojak.factory.nolossmeme.testnet"]);
+  });
+});

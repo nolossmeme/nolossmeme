@@ -2,9 +2,10 @@
  * Turn one Lake block into typed events for the accounts we watch.
  *
  * Pure and synchronous, so it is easy to test with recorded blocks. Sources, in order:
- * 1. NEP-297 `EVENT_JSON:` logs (NEP-141 mint/burn/transfer on pools)
- * 2. Return values of callbacks (`on_draw_price` → Draw, `on_meme_created` → MemeInfo, `check_in` → streak)
- * 3. Plain contract logs for vault movements (until the contracts emit their own NEP-297 events)
+ * 1. `nolossmeme` NEP-297 events (contracts built after #43): one event per state change
+ * 2. NEP-141 `EVENT_JSON:` logs (mint/burn/transfer on pools)
+ * 3. Legacy pools only: callback return values (`on_draw_price` → Draw, `check_in` → streak) and
+ *    plain log lines for vault movements
  */
 import type { IndexedEvent } from "./events.js";
 import type { LakeBlock, LakeReceiptOutcome } from "./neardata.js";
@@ -90,9 +91,55 @@ export function parseBlock(block: LakeBlock, watch: Watch): IndexedEvent[] {
       const logs = r.execution_outcome.outcome.logs;
       const ret = r.execution_outcome.outcome.status.SuccessValue;
 
+      let sawStructured = false;
       for (const line of logs) {
         if (line.startsWith("EVENT_JSON:")) {
           const ev = decodeEventJson(line);
+          if (ev && ev.standard === "nolossmeme") {
+            // Contracts built after #43 describe themselves; prefer that over log parsing.
+            const d = (ev.data[0] ?? {}) as Record<string, unknown>;
+            const str = (k: string): string | null => {
+              const v = d[k];
+              return typeof v === "string" ? v : null;
+            };
+            switch (ev.event) {
+              case "deposit":
+              case "deposit_refunded":
+              case "withdraw":
+              case "withdraw_near":
+              case "redeem":
+                if (isPool)
+                  push(ev.event, str("account_id"), str("amount"), {
+                    shares: str("shares"),
+                    fee: str("fee"),
+                  });
+                break;
+              case "check_in":
+                if (isPool)
+                  push("check_in", str("account_id"), null, {
+                    streak: d["streak"] ?? null,
+                    epoch: d["epoch"] ?? null,
+                  });
+                break;
+              case "draw":
+                if (isPool) push("draw", str("winner"), str("jackpot"), d);
+                break;
+              case "draw_aborted":
+                if (isPool) push("draw_aborted", null, null, { epoch: d["epoch"] ?? null });
+                break;
+              case "launch":
+                if (contract === watch.factory)
+                  push("launch", str("creator"), null, {
+                    symbol: str("symbol"),
+                    pool: str("account_id"),
+                    slug: str("slug"),
+                    name: str("name"),
+                  });
+                break;
+            }
+            sawStructured = true;
+            continue;
+          }
           if (ev && ev.standard === "nep141" && isPool) {
             for (const d of ev.data as Record<string, string>[]) {
               if (ev.event === "ft_mint")
@@ -128,11 +175,12 @@ export function parseBlock(block: LakeBlock, watch: Watch): IndexedEvent[] {
         }
       }
 
-      if (isPool && call?.method === "check_in") {
+      // Legacy pools (deployed before #43) do not emit nolossmeme events; derive from return values.
+      if (!sawStructured && isPool && call?.method === "check_in") {
         const streak = decodeJson<number>(ret);
         push("check_in", r.receipt.predecessor_id, null, { streak: streak ?? null });
       }
-      if (isPool && call?.method === "on_draw_price") {
+      if (!sawStructured && isPool && call?.method === "on_draw_price") {
         const draw = decodeJson<Record<string, unknown> | null>(ret);
         if (draw)
           push(

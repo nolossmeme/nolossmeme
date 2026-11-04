@@ -10,6 +10,10 @@ export const network = {
 
 export const client = new NoLossMemeClient(network);
 
+/** The marketing site; on Pages it is one level up from the app. */
+export const LANDING_URL =
+  (import.meta.env.VITE_LANDING_URL as string | undefined) ?? "http://localhost:5174/";
+
 export function explorerAccount(accountId: string): string {
   return `${network.explorerUrl}/address/${accountId}`;
 }

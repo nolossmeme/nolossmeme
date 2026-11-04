@@ -3,9 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <script>
-      // GitHub Pages serves this for deep links; stash the path and go to the app root.
-      var segments = location.pathname.split("/").filter(Boolean);
-      var base = segments.length > 0 && segments[0] === "nolossmeme" ? "/nolossmeme/" : "/";
+      // Static hosts serve this for deep links; stash the path and go to the app root.
+      var m =
+        location.pathname.match(/^(\/[^/]+)?\/app\//) || location.pathname.match(/^\/nolossmeme\//);
+      var base = m ? m[0] : "/";
       sessionStorage.setItem("nlm:path", location.pathname + location.search);
       location.replace(base);
     </script>

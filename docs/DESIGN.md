@@ -27,7 +27,7 @@ references come from the MotionSites library (Power plan) and were adapted, not 
 Type: Inter 300 for display (`.display`, letter-spacing −0.035em), Inter 400/500 for UI,
 JetBrains Mono for every number and account id. Radii: 9999 px pills, 24 px cards.
 
-Utilities live in `apps/web/src/index.css` (`glass`, `card`, `glow-top`, `btn-*`, `pill`,
+Utilities live in `packages/ui/src/theme.css` (imported by both apps) (`glass`, `card`, `glow-top`, `btn-*`, `pill`,
 `kicker`, `display`, `gradient-text`, `rise`, `floaty`). Motion respects
 `prefers-reduced-motion` (no entrance, videos hidden).
 
@@ -39,4 +39,4 @@ Hero plate and loops are hotlinked from MotionSites' CDN as their prompts instru
 - benefits loop `…/hf_20261022_235442_c62146c2-…-649a4aa26cf5.mp4` (green grid horizon)
 
 If the CDN ever goes away, drop replacements into `apps/web/public/` and update
-`components/landing/Hero.tsx` and `Benefits.tsx`.
+`apps/landing/src/components/Hero.tsx` and `Benefits.tsx`.

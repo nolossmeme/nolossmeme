@@ -20,6 +20,7 @@ Deadline: **14 Nov 2026, 23:59 UTC**. Form: <https://nearhackathon.com/#apply>.
 > never hits zero, a rug is impossible.
 >
 > Live on testnet, no admin keys, factory + pool contracts, web app, keeper, 60-day sim.
+> Site: nolossmeme.github.io/nolossmeme · App: nolossmeme.github.io/nolossmeme/app
 > Repo: github.com/nolossmeme/nolossmeme
 >
 > @NEARProtocol #NEARHackathon

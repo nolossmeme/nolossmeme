@@ -19,6 +19,7 @@
 mod constants;
 mod draw;
 mod math;
+mod redeem;
 mod tickets;
 mod types;
 mod vault;

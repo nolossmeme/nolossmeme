@@ -18,6 +18,7 @@ export function WalletButton() {
   }
   return (
     <button className="btn-secondary font-mono" onClick={() => void signOut()} title="Disconnect">
+      <span className="size-2 rounded-full bg-lime" aria-hidden />
       {shortAccount(signedAccountId, 18)}
     </button>
   );

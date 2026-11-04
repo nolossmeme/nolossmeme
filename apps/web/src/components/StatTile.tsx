@@ -12,9 +12,9 @@ export function StatTile({
   accent?: boolean;
 }) {
   return (
-    <div className="card p-4">
-      <div className="text-xs uppercase tracking-wider text-muted">{label}</div>
-      <div className={`mt-1 font-mono text-xl font-semibold ${accent ? "text-lime" : ""}`}>
+    <div className="card glow-top p-5">
+      <div className="kicker">{label}</div>
+      <div className={`mt-2 font-mono text-2xl font-semibold ${accent ? "text-lime" : ""}`}>
         {value}
       </div>
       {hint && <div className="mt-1 text-xs text-muted">{hint}</div>}

@@ -1,0 +1,10 @@
+{
+  "name": "@nolossmeme/sim",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Python tokenomics simulation; wrapped so pnpm scripts can run it",
+  "scripts": {
+    "sim": "uv run --with matplotlib --with pytest python -m nolossmeme_sim.cli --out output",
+    "test": "uv run --with matplotlib --with pytest python -m pytest -q"
+  }
+}

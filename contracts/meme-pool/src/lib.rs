@@ -20,6 +20,7 @@ mod constants;
 mod math;
 mod tickets;
 mod types;
+mod vault;
 
 #[cfg(test)]
 use near_contract_standards::fungible_token::FungibleToken;

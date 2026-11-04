@@ -24,6 +24,7 @@ export class Scanner {
   private watch: Watch;
   private stopped = false;
   private lastRegistryRefresh = 0;
+  private rpcThrottled = 0;
 
   constructor(
     private readonly data: NearData,
@@ -78,7 +79,14 @@ export class Scanner {
             } catch (e) {
               if (e instanceof UnknownBlock) return false;
               if (e instanceof RateLimited) {
-                await sleep(e.retryAfterMs);
+                this.rpcThrottled += 1;
+                if (this.rpcThrottled % 25 === 1)
+                  log.warn("rpc rate limited", {
+                    height: h,
+                    count: this.rpcThrottled,
+                    waitMs: e.retryAfterMs,
+                  });
+                await sleep(e.retryAfterMs + Math.random() * 500);
                 continue;
               }
               if (attempt >= 5) throw e;

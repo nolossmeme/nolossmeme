@@ -1,0 +1,322 @@
+import {
+  actions,
+  bpsToPercent,
+  formatDuration,
+  formatMeme,
+  formatNear,
+  nsToDate,
+  nsToSeconds,
+  parseMeme,
+  parseNear,
+  splitEmission,
+  winChance,
+  type AccountView,
+  type PoolState,
+} from "@nolossmeme/sdk";
+import { useState } from "react";
+import { useParams } from "react-router-dom";
+
+import { AmountInput } from "../components/AmountInput";
+import { Countdown } from "../components/Countdown";
+import { DrawLog } from "../components/DrawLog";
+import { FloorChart } from "../components/FloorChart";
+import { Leaderboard } from "../components/Leaderboard";
+import { MemeIcon } from "../components/MemeIcon";
+import { StatTile } from "../components/StatTile";
+import { useMeme } from "../hooks/useMemes";
+import { useDepositors, useDraws, useMyPosition, usePoolState } from "../hooks/usePool";
+import { explorerAccount } from "../lib/client";
+import { useTx } from "../lib/wallet";
+
+export function MemePage() {
+  const { slug } = useParams();
+  const { data: meme, isLoading } = useMeme(slug);
+  const pool = meme?.account_id;
+  const { data: state } = usePoolState(pool);
+  const { data: draws } = useDraws(pool);
+  const { data: depositors } = useDepositors(pool);
+  const tx = useTx();
+  const { data: me } = useMyPosition(pool, tx.signedAccountId || undefined);
+
+  if (isLoading) return <p className="text-muted">Loading…</p>;
+  if (!meme || !pool) return <p className="text-muted">Unknown meme.</p>;
+
+  const split = state
+    ? splitEmission(state.params, state.epoch_index, Math.max(state.checkins_this_epoch, 1))
+    : null;
+  const totalWeight = (depositors ?? []).reduce((acc, [, a]) => acc + BigInt(a.weight), 0n);
+  const drawDue = state ? nsToSeconds(state.next_draw_at) * 1000 <= Date.now() : false;
+
+  return (
+    <div className="flex flex-col gap-8">
+      <header className="flex flex-wrap items-center gap-4">
+        <MemeIcon icon={meme.icon} symbol={meme.symbol} size={56} />
+        <div>
+          <h1 className="text-3xl font-bold">
+            {meme.name} <span className="text-muted font-mono text-xl">${meme.symbol}</span>
+          </h1>
+          <a
+            className="text-xs text-muted hover:text-text font-mono"
+            href={explorerAccount(pool)}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {pool}
+          </a>
+        </div>
+        <div className="ml-auto card px-5 py-3 text-right">
+          <div className="text-[10px] uppercase tracking-wider text-muted">Next draw</div>
+          <div className="text-2xl">
+            <Countdown targetMs={state ? nsToDate(state.next_draw_at).getTime() : undefined} />
+          </div>
+          {state && drawDue && (
+            <button
+              className="btn-primary mt-2 w-full"
+              disabled={tx.pending || state.in_flight > 0}
+              onClick={() => void tx.send(actions.draw(pool), "Draw")}
+            >
+              Run the draw
+            </button>
+          )}
+        </div>
+      </header>
+
+      {state && (
+        <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <StatTile
+            label="NEAR locked"
+            value={`${formatNear(state.total_principal, 2)} Ⓝ`}
+            hint={`${state.depositors} depositors`}
+          />
+          <StatTile
+            label="Floor price"
+            value={`${formatNear(state.floor_price, 7)} Ⓝ`}
+            hint={`treasury ${formatNear(state.treasury_near, 4)} Ⓝ`}
+            accent
+          />
+          <StatTile
+            label="This epoch's jackpot"
+            value={`${formatMeme(split?.jackpot ?? 0n, 0)} ${meme.symbol}`}
+            hint={`${bpsToPercent(state.params.jackpot_bps)} of ${formatMeme(state.emission_now, 0)} minted`}
+          />
+          <StatTile
+            label="Check-in reward"
+            value={`${formatMeme(split?.perCheckin ?? 0n, 1)} ${meme.symbol}`}
+            hint={`${state.checkins_this_epoch} checked in · every ${formatDuration(nsToSeconds(state.params.epoch_length_ns))}`}
+          />
+        </section>
+      )}
+
+      <section className="grid lg:grid-cols-[1fr_1.4fr] gap-6">
+        <PositionCard
+          pool={pool}
+          symbol={meme.symbol}
+          state={state}
+          me={me}
+          totalWeight={totalWeight}
+          tx={tx}
+        />
+        <div className="card p-5">
+          <h2 className="font-semibold mb-3">Floor price over time</h2>
+          <FloorChart draws={draws ?? []} />
+          <p className="mt-3 text-xs text-muted">
+            Floor = treasury ÷ supply. The treasury only receives staking yield, and every{" "}
+            {meme.symbol} can be burned for its share.
+          </p>
+        </div>
+      </section>
+
+      <section className="card p-5">
+        <h2 className="font-semibold mb-3">Draw log</h2>
+        <DrawLog draws={draws ?? []} symbol={meme.symbol} />
+      </section>
+
+      <section className="card p-5">
+        <h2 className="font-semibold mb-3">Leaderboard</h2>
+        <Leaderboard
+          rows={depositors ?? []}
+          symbol={meme.symbol}
+          me={tx.signedAccountId || undefined}
+        />
+      </section>
+
+      {state && <ParamsCard state={state} />}
+    </div>
+  );
+}
+
+type Tab = "deposit" | "withdraw" | "redeem";
+
+function PositionCard({
+  pool,
+  symbol,
+  state,
+  me,
+  totalWeight,
+  tx,
+}: {
+  pool: string;
+  symbol: string;
+  state: PoolState | undefined;
+  me: AccountView | undefined;
+  totalWeight: bigint;
+  tx: ReturnType<typeof useTx>;
+}) {
+  const [tab, setTab] = useState<Tab>("deposit");
+  const [amount, setAmount] = useState("");
+  const [asNear, setAsNear] = useState(false);
+  const principal = BigInt(me?.principal ?? 0);
+  const balance = BigInt(me?.meme_balance ?? 0);
+  const odds = me ? winChance(BigInt(me.weight), totalWeight) : 0;
+
+  const submit = async () => {
+    if (tab === "deposit") {
+      const yocto = parseNear(amount || "0");
+      if (yocto <= 0n) return;
+      if (await tx.send(actions.deposit(pool, yocto, me?.registered ?? false), "Deposit"))
+        setAmount("");
+    } else if (tab === "withdraw") {
+      const yocto = amount ? parseNear(amount) : undefined;
+      const all = yocto === undefined || yocto >= principal;
+      const call = asNear
+        ? actions.withdrawNear(
+            pool,
+            all ? undefined : yocto,
+            ((all ? principal : yocto) * 97n) / 100n,
+          )
+        : actions.withdraw(pool, all ? undefined : yocto);
+      if (await tx.send(call, "Withdraw")) setAmount("");
+    } else {
+      const yocto = amount ? parseMeme(amount) : balance;
+      if (yocto <= 0n) return;
+      if (await tx.send(actions.redeem(pool, yocto > balance ? balance : yocto), "Redeem"))
+        setAmount("");
+    }
+  };
+
+  return (
+    <div className="card p-5 flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <h2 className="font-semibold">Your position</h2>
+        {me && me.streak > 0 && <span className="text-sm">🔥 {me.streak} streak</span>}
+      </div>
+      <dl className="grid grid-cols-3 gap-3 text-sm">
+        <div>
+          <dt className="text-[10px] uppercase tracking-wider text-muted">Locked</dt>
+          <dd className="font-mono">{formatNear(principal, 3)} Ⓝ</dd>
+        </div>
+        <div>
+          <dt className="text-[10px] uppercase tracking-wider text-muted">{symbol}</dt>
+          <dd className="font-mono">{formatMeme(balance, 2)}</dd>
+        </div>
+        <div>
+          <dt className="text-[10px] uppercase tracking-wider text-muted">Odds now</dt>
+          <dd className="font-mono text-lime">{(odds * 100).toFixed(2)}%</dd>
+        </div>
+      </dl>
+
+      <button
+        className="btn-secondary"
+        disabled={!me || principal === 0n || me.checked_in_this_epoch || tx.pending}
+        onClick={() => void tx.send(actions.checkIn(pool), "Check-in")}
+      >
+        {me?.checked_in_this_epoch
+          ? "Checked in for this epoch ✓"
+          : "Daily check-in (+ticket boost, share of rewards)"}
+      </button>
+
+      <div className="flex gap-1 border-b border-border pb-2">
+        {(["deposit", "withdraw", "redeem"] as Tab[]).map((t) => (
+          <button
+            key={t}
+            className={`tab ${tab === t ? "tab-active" : ""}`}
+            onClick={() => setTab(t)}
+          >
+            {t[0]!.toUpperCase() + t.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {tab === "deposit" && (
+        <>
+          <AmountInput value={amount} onChange={setAmount} unit="Ⓝ" />
+          <p className="text-xs text-muted">
+            Staked with Meta Pool. Withdraw any time at face value.
+            {me &&
+              !me.registered &&
+              " First deposit adds a one-time 0.005 Ⓝ storage fee (refundable)."}
+            {state && ` Minimum ${formatNear(state.params.min_deposit, 2)} Ⓝ.`}
+          </p>
+        </>
+      )}
+      {tab === "withdraw" && (
+        <>
+          <AmountInput
+            value={amount}
+            onChange={setAmount}
+            unit="Ⓝ"
+            max={formatNear(principal, 6)}
+          />
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={asNear} onChange={(e) => setAsNear(e.target.checked)} />
+            Receive NEAR now (Meta Pool liquid unstake, small fee) instead of stNEAR
+          </label>
+          <p className="text-xs text-muted">
+            Leave empty to withdraw everything. stNEAR is worth exactly your NEAR at today's price.
+          </p>
+        </>
+      )}
+      {tab === "redeem" && (
+        <>
+          <AmountInput
+            value={amount}
+            onChange={setAmount}
+            unit={symbol}
+            max={formatMeme(balance, 6)}
+          />
+          <p className="text-xs text-muted">
+            Burn {symbol} for its share of the treasury, paid in stNEAR at the floor price
+            {state && ` (${formatNear(state.floor_price, 7)} Ⓝ each)`}.
+          </p>
+        </>
+      )}
+      <button className="btn-primary" disabled={tx.pending} onClick={() => void submit()}>
+        {tx.pending
+          ? "Confirm in wallet…"
+          : tx.signedAccountId
+            ? tab[0]!.toUpperCase() + tab.slice(1)
+            : "Connect wallet"}
+      </button>
+    </div>
+  );
+}
+
+function ParamsCard({ state }: { state: PoolState }) {
+  const p = state.params;
+  const rows: [string, string][] = [
+    ["Epoch length", formatDuration(nsToSeconds(p.epoch_length_ns))],
+    ["Initial emission", `${formatMeme(p.initial_emission, 0)} per epoch`],
+    ["Halving", `every ${p.halving_every} epochs`],
+    ["Jackpot share", bpsToPercent(p.jackpot_bps)],
+    [
+      "Streak bonus",
+      `+${bpsToPercent(p.streak_step_bps)} per day, max ${bpsToPercent(p.max_streak_bonus_bps)}`,
+    ],
+    ["Min deposit", `${formatNear(p.min_deposit, 2)} Ⓝ`],
+    ["Staking pool", p.staking_pool],
+    ["Admin keys", "none, parameters frozen at launch"],
+  ];
+  return (
+    <section className="card p-5">
+      <h2 className="font-semibold mb-3">Rules (on-chain, immutable)</h2>
+      <dl className="grid sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+        {rows.map(([k, v]) => (
+          <div key={k} className="flex justify-between gap-4 border-b border-border/60 py-1">
+            <dt className="text-muted">{k}</dt>
+            <dd className="font-mono text-right">{v}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}

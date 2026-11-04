@@ -1,0 +1,37 @@
+# fly launch --copy-config --no-deploy && fly volumes create nolossmeme_data --size 1 && fly deploy
+# Build context is the monorepo root: run fly commands from the repository root with
+#   fly deploy --config services/backend/fly.toml --dockerfile services/backend/Dockerfile
+app = "nolossmeme-backend"
+primary_region = "sin"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NEAR_NETWORK = "testnet"
+  PORT = "8787"
+  DATABASE_URL = "file:/data/nolossmeme.db"
+  CORS_ORIGIN = "*"
+  LOG_LEVEL = "info"
+
+[[mounts]]
+  source = "nolossmeme_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "20s"
+    method = "GET"
+    path = "/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

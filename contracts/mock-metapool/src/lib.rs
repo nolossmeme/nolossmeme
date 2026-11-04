@@ -13,6 +13,8 @@ use primitive_types::U256;
 const ONE_NEAR: u128 = 1_000_000_000_000_000_000_000_000;
 /// Liquid-unstake fee, 0.3% like Meta Pool's floor.
 const LIQUID_UNSTAKE_FEE_BPS: u128 = 30;
+/// Meta Pool's `min_deposit_amount` on testnet.
+const MIN_DEPOSIT: u128 = ONE_NEAR;
 
 fn mul_div(a: u128, b: u128, c: u128) -> u128 {
     (U256::from(a) * U256::from(b) / U256::from(c)).as_u128()
@@ -64,7 +66,10 @@ impl Contract {
     #[payable]
     pub fn deposit_and_stake(&mut self) -> U128 {
         let amount = env::attached_deposit().as_yoctonear();
-        require!(amount > 0, "attach NEAR");
+        require!(
+            amount >= MIN_DEPOSIT,
+            format!("minimum deposit amount is {MIN_DEPOSIT}")
+        );
         let shares = mul_div(amount, ONE_NEAR, self.price);
         let mut acc = self.account(&env::predecessor_account_id());
         acc.shares += shares;

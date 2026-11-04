@@ -7,6 +7,7 @@ use near_sdk::json_types::{U64, U128};
 use near_sdk::{env, near, require};
 
 use crate::constants::{BPS, NANOS_PER_SECOND, ONE_NEAR};
+use crate::events;
 use crate::math::mul_div;
 use crate::types::Depositor;
 use crate::{Contract, ContractExt};
@@ -34,6 +35,7 @@ impl Contract {
         };
         d.last_checkin_epoch = Some(self.epoch_index);
         let streak = d.streak;
+        events::check_in(&account, streak, self.epoch_index);
         self.depositors.insert(account, d);
         self.checkins_this_epoch += 1;
         streak

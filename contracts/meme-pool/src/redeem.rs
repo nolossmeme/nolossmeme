@@ -4,6 +4,7 @@ use near_sdk::json_types::U128;
 use near_sdk::{AccountId, Promise, PromiseError, assert_one_yocto, env, log, near, require};
 
 use crate::constants::GAS_CB_SMALL;
+use crate::events;
 use crate::math::mul_div;
 use crate::{Contract, ContractExt};
 
@@ -60,12 +61,7 @@ impl Contract {
             log!("stNEAR transfer failed, MEME restored");
             return U128(0);
         }
-        log!(
-            "redeem {} MEME -> {} stNEAR to {}",
-            amount.0,
-            shares.0,
-            account
-        );
+        events::redeem(&account, amount.0, shares.0);
         shares
     }
 }

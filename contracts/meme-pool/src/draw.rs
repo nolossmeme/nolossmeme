@@ -5,9 +5,10 @@
 //! randomness, the weights and the mint are atomic.
 use near_contract_standards::fungible_token::events::FtMint;
 use near_sdk::json_types::{U64, U128};
-use near_sdk::{AccountId, Promise, PromiseError, env, log, near, require};
+use near_sdk::{AccountId, Promise, PromiseError, env, near, require};
 
 use crate::constants::*;
+use crate::events;
 use crate::math::{emission_for, hex, mul_div, mul_div_ceil, near_from_shares};
 use crate::types::Draw;
 use crate::{Contract, ContractExt};
@@ -46,7 +47,7 @@ impl Contract {
     ) -> Option<Draw> {
         self.draw_in_progress = false;
         let Ok(U128(price)) = price else {
-            log!("price lookup failed, draw aborted; call draw again");
+            events::draw_aborted(self.epoch_index);
             return None;
         };
         self.st_near_price = price;
@@ -84,14 +85,7 @@ impl Contract {
             seed: hex(&seed),
         };
         self.draws.push(draw.clone());
-        log!(
-            "draw #{} winner={:?} jackpot={} checkins={} yield_shares={}",
-            draw.epoch,
-            draw.winner,
-            jackpot,
-            checkins,
-            yield_shares
-        );
+        events::draw(&draw);
         Some(draw)
     }
 }

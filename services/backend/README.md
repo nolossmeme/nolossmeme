@@ -30,4 +30,15 @@ docker build -f services/backend/Dockerfile -t nolossmeme-backend .
 docker run -p 8787:8787 -v nolossmeme-data:/data nolossmeme-backend
 ```
 
-Point the web app at it with `VITE_INDEXER_URL=https://your-host`. Without it the app keeps working from contract views alone.
+Point the web app at it with `VITE_INDEXER_URL=https://your-host` (for the Pages build: repository variable `INDEXER_URL`). Without it the app keeps working from contract views alone.
+
+Fly.io (one volume, one shared-cpu machine):
+
+```bash
+fly launch --config services/backend/fly.toml --dockerfile services/backend/Dockerfile --no-deploy
+fly volumes create nolossmeme_data --size 1 --region sin
+fly secrets set KEEPER_ACCOUNT_ID=keeper.nolossmeme.testnet KEEPER_PRIVATE_KEY=ed25519:...   # optional draw worker
+fly deploy --config services/backend/fly.toml --dockerfile services/backend/Dockerfile
+```
+
+The indexer resumes from its cursor on restart; the first start backfills from `START_BLOCK` (sparse scan, a few minutes).

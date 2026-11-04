@@ -20,7 +20,7 @@ pub struct Fixture {
     pub bob: Account,
 }
 
-fn wasm(crate_dir: &str) -> Vec<u8> {
+pub fn wasm(crate_dir: &str) -> Vec<u8> {
     let manifest = format!("{}/../{}/Cargo.toml", env!("CARGO_MANIFEST_DIR"), crate_dir);
     let path = cargo_near_build::build_with_cli(cargo_near_build::BuildOpts {
         manifest_path: Some(manifest.into()),
@@ -103,6 +103,16 @@ impl Fixture {
             .send()
             .await?;
         Ok(Account(id))
+    }
+
+    /// Extra funded account on the running sandbox.
+    pub async fn create_account(&self, name: &str, near: u128) -> testresult::TestResult<Account> {
+        Self::account(&self.sandbox, name, near).await
+    }
+
+    /// Build (or reuse) a contract wasm from this workspace.
+    pub fn wasm(&self, crate_dir: &str) -> Vec<u8> {
+        wasm(crate_dir)
     }
 
     /// Change method on the pool. Returns the execution result for assertions.

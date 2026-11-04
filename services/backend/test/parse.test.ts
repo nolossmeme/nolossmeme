@@ -311,3 +311,28 @@ describe("Rpc rotation", async () => {
     expect(rpc.size).toBe(3);
   });
 });
+
+describe("Rpc cooldown", async () => {
+  const { Rpc } = await import("../src/indexer/rpc.js");
+  const { RateLimited } = await import("../src/indexer/neardata.js");
+  it("skips an endpoint that answered 429 and keeps using the others", async () => {
+    const hits: string[] = [];
+    const fetchImpl: typeof fetch = (input) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+      hits.push(url);
+      if (url === "http://slow")
+        return Promise.resolve(
+          new Response("", { status: 429, headers: { "retry-after": "600" } }),
+        );
+      return Promise.resolve(
+        new Response(JSON.stringify({ result: { changes: [] } }), { status: 200 }),
+      );
+    };
+    const rpc = new Rpc(["http://fast", "http://slow"], { rps: 100, fetchImpl });
+    await rpc.touchedAccounts(1); // fast
+    await expect(rpc.touchedAccounts(2)).rejects.toBeInstanceOf(RateLimited); // slow -> 429, short wait
+    for (let h = 3; h <= 6; h++) await rpc.touchedAccounts(h); // slow is cooling: all go to fast
+    expect(hits.filter((h) => h === "http://slow")).toHaveLength(1);
+    expect(hits.filter((h) => h === "http://fast")).toHaveLength(5);
+  });
+});

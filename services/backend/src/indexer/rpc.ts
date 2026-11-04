@@ -15,7 +15,13 @@ interface RpcResponse<T> {
 interface Endpoint {
   url: string;
   limiter: RateLimiter;
+  /** Epoch ms until which this endpoint is skipped after a 429. */
+  cooldownUntil: number;
 }
+
+/** Never honour a Retry-After longer than this; other endpoints can serve meanwhile. */
+const MAX_COOLDOWN_MS = 120_000;
+const MAX_WAIT_MS = 10_000;
 
 /** JSON-RPC over one or more endpoints, round robin, each with its own rate limit. */
 export class Rpc {
@@ -26,7 +32,11 @@ export class Rpc {
   constructor(urls: string | string[], opts: { rps?: number; fetchImpl?: typeof fetch } = {}) {
     const list = Array.isArray(urls) ? urls : [urls];
     if (list.length === 0) throw new Error("at least one rpc url is required");
-    this.endpoints = list.map((url) => ({ url, limiter: new RateLimiter(opts.rps ?? 2) }));
+    this.endpoints = list.map((url) => ({
+      url,
+      limiter: new RateLimiter(opts.rps ?? 2),
+      cooldownUntil: 0,
+    }));
     this.fetchImpl = opts.fetchImpl ?? fetch;
   }
 
@@ -34,8 +44,20 @@ export class Rpc {
     return this.endpoints.length;
   }
 
+  /** Next endpoint in rotation that is not cooling down; if all are, the one that frees up first. */
+  private pick(): Endpoint {
+    const now = Date.now();
+    for (let i = 0; i < this.endpoints.length; i++) {
+      const ep = this.endpoints[this.next++ % this.endpoints.length]!;
+      if (ep.cooldownUntil <= now) return ep;
+    }
+    return this.endpoints.reduce((a, b) => (a.cooldownUntil <= b.cooldownUntil ? a : b));
+  }
+
   private async call<T>(method: string, params: unknown): Promise<T> {
-    const ep = this.endpoints[this.next++ % this.endpoints.length]!;
+    const ep = this.pick();
+    const wait = ep.cooldownUntil - Date.now();
+    if (wait > 0) throw new RateLimited(Math.min(wait, MAX_WAIT_MS));
     await ep.limiter.take();
     const res = await this.fetchImpl(ep.url, {
       method: "POST",
@@ -45,7 +67,10 @@ export class Rpc {
     });
     if (res.status === 429) {
       const ra = Number(res.headers.get("retry-after"));
-      throw new RateLimited(Number.isFinite(ra) && ra > 0 ? ra * 1000 : 2_000);
+      const cooldown = Math.min(Number.isFinite(ra) && ra > 0 ? ra * 1000 : 2_000, MAX_COOLDOWN_MS);
+      ep.cooldownUntil = Date.now() + cooldown;
+      // Another endpoint may be free right away; the caller retries after a short wait.
+      throw new RateLimited(this.endpoints.length > 1 ? 50 : Math.min(cooldown, MAX_WAIT_MS));
     }
     if (!res.ok) throw new Error(`${method}: HTTP ${res.status}`);
     const body = (await res.json()) as RpcResponse<T>;

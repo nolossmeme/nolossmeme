@@ -87,6 +87,8 @@ export class NearData {
   private async get(path: string): Promise<Response> {
     await this.limiter.take();
     const res = await this.fetchImpl(`${this.baseUrl}${path}`, {
+      // A stalled connection must not hang the scanner forever; 20 s is generous for a 1-2 MB block.
+      signal: AbortSignal.timeout(20_000),
       redirect: "follow",
       headers: { "user-agent": "nolossmeme-backend/0.1" },
     });

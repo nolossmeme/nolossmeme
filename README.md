@@ -123,6 +123,7 @@ The attached NEAR funds the new account's storage (`get_launch_cost`, ≈ 3.2 �
 - **Randomness.** The draw hashes `env::random_seed()` with the epoch index and total weight. The producer of the block containing the `on_draw_price` receipt can predict it. Fine for a hackathon; a commit-reveal from the keeper or a VRF is the upgrade path.
 - **Draw cost is O(depositors).** One callback settles every depositor (270 TGas). Hundreds of accounts are fine; thousands need paged settlement or a sum tree.
 - **Sybil resistance of check-ins** is the deposit itself: a check-in only boosts weight you already have (`min_deposit` applies), and the community share is split per account, so splitting a deposit across accounts does not increase the expected jackpot and only redistributes the community share. A per-account minimum weight for the community share would tighten this.
+- **Meta Pool minimum.** `meta-v2.pool.testnet` rejects stakes under 1 Ⓝ; a smaller deposit is refunded by the pool's callback (no loss, but no deposit). Set `min_deposit` ≥ 1 Ⓝ at launch; the web app enforces it.
 - **`withdraw_near`** depends on Meta Pool's liquidity pool and pays its swap fee; `withdraw` (stNEAR) always works and is free.
 - **Slashing** of the staking pool would leave the last withdrawers short; the treasury is never used to cover principal.
 - **No upgrades.** A pool cannot be patched; a new one would have to be launched.

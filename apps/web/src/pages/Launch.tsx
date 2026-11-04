@@ -37,7 +37,7 @@ export function LaunchPage() {
     jackpotPct: "70",
     streakStepPct: "10",
     maxStreakPct: "50",
-    minDeposit: "0.1",
+    minDeposit: "1",
   });
   const [sim, setSim] = useState({ tvl: "1000", apy: "9", checkin: "50", depositors: "50" });
   const set = (k: keyof typeof form) => (v: string | number) => setForm((f) => ({ ...f, [k]: v }));
@@ -232,6 +232,7 @@ export function LaunchPage() {
             label="Minimum deposit (Ⓝ)"
             value={form.minDeposit}
             onChange={set("minDeposit")}
+            hint="Meta Pool rejects stakes under 1 Ⓝ"
           />
         </div>
 

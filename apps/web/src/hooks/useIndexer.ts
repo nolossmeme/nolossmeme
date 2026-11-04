@@ -20,6 +20,15 @@ export function usePoolSeries(pool: string | undefined, hours = 24 * 7) {
   });
 }
 
+export function useAccountActivity(accountId: string | undefined) {
+  return useQuery({
+    queryKey: ["indexer", "account", accountId],
+    queryFn: () => indexer.account(accountId ?? "", 50),
+    enabled: indexerEnabled && Boolean(accountId),
+    refetchInterval: 30_000,
+  });
+}
+
 export function useRecentActivity() {
   return useQuery({
     queryKey: ["indexer", "recent"],

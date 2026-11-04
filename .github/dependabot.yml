@@ -1,0 +1,20 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      dev-dependencies:
+        dependency-type: development
+    labels: ["type: chore", "area: ci"]
+  - package-ecosystem: cargo
+    directory: /contracts
+    schedule:
+      interval: weekly
+    labels: ["type: chore", "area: contracts"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels: ["type: chore", "area: ci"]

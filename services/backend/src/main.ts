@@ -6,6 +6,7 @@ import { loadConfig } from "./config.js";
 import { openDb } from "./db/client.js";
 import { Store } from "./db/store.js";
 import { NearData } from "./indexer/neardata.js";
+import { Rpc } from "./indexer/rpc.js";
 import { Scanner } from "./indexer/scanner.js";
 import { startKeeperJob } from "./jobs/keeper.js";
 import { startSnapshotJob } from "./jobs/snapshots.js";
@@ -28,9 +29,11 @@ async function main(): Promise<void> {
         .catch(() => undefined),
     10_000,
   );
-  const scanner = new Scanner(data, store, client, cfg.network.factory, {
+  const scanner = new Scanner(data, store, client, new Rpc(cfg.rpcUrl), cfg.network.factory, {
     startBlock: cfg.START_BLOCK,
     concurrency: cfg.SCAN_CONCURRENCY,
+    sparse: cfg.SPARSE_SCAN,
+    rpcConcurrency: cfg.RPC_CONCURRENCY,
   });
 
   const stopSnapshots = startSnapshotJob(store, client, cfg.SNAPSHOT_INTERVAL_MS, () => head);

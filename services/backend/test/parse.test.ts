@@ -201,3 +201,33 @@ describe("RateLimiter", async () => {
     expect(Date.now() - t0).toBeGreaterThanOrEqual(400); // 10 instant, 5 more at 10/s
   });
 });
+
+describe("Rpc.touchedAccounts", async () => {
+  const { Rpc, UnknownBlock } = await import("../src/indexer/rpc.js");
+  const fake =
+    (body: unknown): typeof fetch =>
+    () =>
+      Promise.resolve(new Response(JSON.stringify(body), { status: 200 }));
+  it("returns the set of touched accounts", async () => {
+    const rpc = new Rpc(
+      "http://rpc",
+      fake({
+        result: {
+          changes: [
+            { type: "account_touched", account_id: "a" },
+            { type: "data_touched", account_id: "a" },
+            { type: "account_touched", account_id: "b" },
+          ],
+        },
+      }),
+    );
+    expect([...(await rpc.touchedAccounts(1))].sort()).toEqual(["a", "b"]);
+  });
+  it("maps unknown blocks to UnknownBlock", async () => {
+    const rpc = new Rpc(
+      "http://rpc",
+      fake({ error: { name: "HANDLER_ERROR", cause: { name: "UNKNOWN_BLOCK" } } }),
+    );
+    await expect(rpc.touchedAccounts(5)).rejects.toBeInstanceOf(UnknownBlock);
+  });
+});

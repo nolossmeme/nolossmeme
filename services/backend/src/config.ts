@@ -12,6 +12,9 @@ const Env = z.object({
   /** First block to index. Defaults to a height shortly before the testnet factory was deployed. */
   START_BLOCK: z.coerce.number().int().positive().default(276_200_000),
   SCAN_CONCURRENCY: z.coerce.number().int().min(1).max(16).default(2),
+  /** Pre-filter blocks with `EXPERIMENTAL_changes_in_block` (cheap on the RPC) before fetching them from the archive. */
+  SPARSE_SCAN: z.coerce.boolean().default(true),
+  RPC_CONCURRENCY: z.coerce.number().int().min(1).max(32).default(8),
   /** Requests per second against the block archive (FastNEAR throttles aggressive clients). */
   NEARDATA_RPS: z.coerce.number().min(0.2).max(50).default(2),
   SNAPSHOT_INTERVAL_MS: z.coerce.number().int().min(10_000).default(300_000),

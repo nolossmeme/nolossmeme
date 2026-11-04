@@ -88,8 +88,8 @@ export class Scanner {
         }),
       );
       slice.forEach((h, j) => touched[j] && out.push(h));
-      if (i > 0 && i % 2_000 === 0)
-        log.info("prefilter progress", { height: slice[0], candidates: out.length });
+      if (i > 0 && i % 1_000 < width)
+        log.info("prefilter progress", { height: slice[0], scanned: i, candidates: out.length });
     }
     return out;
   }

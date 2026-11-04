@@ -5,6 +5,8 @@ const Env = z.object({
   NEAR_NETWORK: z.enum(["testnet", "mainnet"]).default("testnet"),
   FACTORY_ID: z.string().optional(),
   RPC_URL: z.string().url().optional(),
+  /** Comma-separated RPC endpoints to rotate for the block pre-filter (each has the same per-endpoint rate limit). */
+  RPC_URLS: z.string().optional(),
   /** FastNEAR's free block archive, NEAR Lake format: https://testnet.neardata.xyz/v0/block/{height} */
   NEARDATA_URL: z.string().url().optional(),
   DATABASE_URL: z.string().default("file:./data/nolossmeme.db"),
@@ -15,7 +17,7 @@ const Env = z.object({
   /** Pre-filter blocks with `EXPERIMENTAL_changes_in_block` (cheap on the RPC) before fetching them from the archive. */
   SPARSE_SCAN: z.coerce.boolean().default(true),
   /** FastNEAR's free RPC answers ~2 req/s sustained for `changes_in_block`; above that it returns 429. */
-  RPC_CONCURRENCY: z.coerce.number().int().min(1).max(32).default(2),
+  RPC_CONCURRENCY: z.coerce.number().int().min(1).max(32).default(4),
   RPC_RPS: z.coerce.number().min(0.5).max(100).default(2),
   /** Requests per second against the block archive (FastNEAR throttles aggressive clients). */
   NEARDATA_RPS: z.coerce.number().min(0.2).max(50).default(2),
@@ -30,9 +32,17 @@ const Env = z.object({
   ROLE: z.string().default("all"),
 });
 
+/** Free endpoints that serve `EXPERIMENTAL_changes_in_block`; rotating spreads the per-endpoint limits. */
+const DEFAULT_RPC_URLS: Record<NetworkId, string> = {
+  testnet:
+    "https://test.rpc.fastnear.com,https://archival-rpc.testnet.fastnear.com,https://rpc.testnet.near.org",
+  mainnet: "https://free.rpc.fastnear.com,https://archival-rpc.mainnet.fastnear.com",
+};
+
 export interface Config extends z.infer<typeof Env> {
   network: (typeof NETWORKS)[NetworkId];
   rpcUrl: string;
+  rpcUrls: string[];
   neardataUrl: string;
 }
 
@@ -44,6 +54,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     ...e,
     network,
     rpcUrl: e.RPC_URL ?? network.rpcUrl,
+    rpcUrls: (e.RPC_URLS ?? DEFAULT_RPC_URLS[networkId])
+      .split(",")
+      .map((u) => u.trim())
+      .filter(Boolean),
     neardataUrl:
       e.NEARDATA_URL ??
       (networkId === "mainnet" ? "https://mainnet.neardata.xyz" : "https://testnet.neardata.xyz"),

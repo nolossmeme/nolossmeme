@@ -294,3 +294,20 @@ describe("parseBlock with nolossmeme events (contracts after #43)", () => {
     expect(launchedPools(events)).toEqual(["wojak.factory.nolossmeme.testnet"]);
   });
 });
+
+describe("Rpc rotation", async () => {
+  const { Rpc } = await import("../src/indexer/rpc.js");
+  it("round-robins across endpoints", async () => {
+    const hits: string[] = [];
+    const fetchImpl: typeof fetch = (input) => {
+      hits.push(typeof input === "string" ? input : input instanceof URL ? input.href : input.url);
+      return Promise.resolve(
+        new Response(JSON.stringify({ result: { changes: [] } }), { status: 200 }),
+      );
+    };
+    const rpc = new Rpc(["http://a", "http://b", "http://c"], { rps: 100, fetchImpl });
+    for (let h = 1; h <= 6; h++) await rpc.touchedAccounts(h);
+    expect(hits).toEqual(["http://a", "http://b", "http://c", "http://a", "http://b", "http://c"]);
+    expect(rpc.size).toBe(3);
+  });
+});

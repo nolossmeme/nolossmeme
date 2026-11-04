@@ -36,7 +36,7 @@ async function main(): Promise<void> {
     data,
     store,
     client,
-    new Rpc(cfg.rpcUrl, { rps: cfg.RPC_RPS }),
+    new Rpc(cfg.rpcUrls, { rps: cfg.RPC_RPS }),
     cfg.network.factory,
     {
       startBlock: cfg.START_BLOCK,

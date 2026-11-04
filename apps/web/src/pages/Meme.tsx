@@ -27,7 +27,7 @@ import { Leaderboard } from "../components/Leaderboard";
 import { MemeIcon } from "../components/MemeIcon";
 import { SeriesChart } from "../components/SeriesChart";
 import { StatTile } from "../components/StatTile";
-import { usePoolActivity, usePoolSeries } from "../hooks/useIndexer";
+import { useAccountActivity, usePoolActivity, usePoolSeries } from "../hooks/useIndexer";
 import { useMeme } from "../hooks/useMemes";
 import { useDepositors, useDraws, useMyPosition, usePoolState } from "../hooks/usePool";
 import { explorerAccount } from "../lib/client";
@@ -44,6 +44,8 @@ export function MemePage() {
   const tx = useTx();
   const { data: me } = useMyPosition(pool, tx.signedAccountId || undefined);
   const { data: activity } = usePoolActivity(pool);
+  const { data: mine } = useAccountActivity(tx.signedAccountId || undefined);
+  const myEvents = (mine ?? []).filter((e) => e.contract === pool).slice(0, 8);
   const { data: series } = usePoolSeries(pool);
 
   if (isLoading) return <p className="text-muted">Loading…</p>;
@@ -141,9 +143,21 @@ export function MemePage() {
       </section>
 
       {indexerEnabled && (
-        <section className="card p-5">
-          <h2 className="font-semibold mb-3">Activity</h2>
-          <ActivityFeed events={activity ?? []} symbol={meme.symbol} />
+        <section className="grid lg:grid-cols-[1fr_1.4fr] gap-6">
+          <div className="card p-5">
+            <h2 className="font-semibold mb-3">Your history here</h2>
+            {tx.signedAccountId ? (
+              <ActivityFeed events={myEvents} symbol={meme.symbol} />
+            ) : (
+              <p className="text-sm text-muted">
+                Connect a wallet to see your deposits, check-ins and wins.
+              </p>
+            )}
+          </div>
+          <div className="card p-5">
+            <h2 className="font-semibold mb-3">Pool activity</h2>
+            <ActivityFeed events={activity ?? []} symbol={meme.symbol} />
+          </div>
         </section>
       )}
 

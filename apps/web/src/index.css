@@ -1,63 +1,179 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-  --color-bg: #0b0b10;
-  --color-surface: #13131b;
-  --color-surface-2: #1b1b26;
-  --color-border: #262634;
-  --color-text: #f3f3f8;
-  --color-muted: #9b9bb3;
+  --color-bg: #050507;
+  --color-surface: #0c0c12;
+  --color-surface-2: #14141c;
+  --color-border: #1f1f2a;
+  --color-text: #f5f5f8;
+  --color-muted: #9a9aae;
   --color-lime: #a3ff5b;
   --color-lime-dim: #5e9a2f;
   --color-pink: #ff5bd6;
+  --color-blue: #4f7cff;
   --color-amber: #ffc857;
   --color-red: #ff6b6b;
 }
 
 html {
   color-scheme: dark;
+  scroll-behavior: smooth;
 }
 
 body {
   @apply bg-bg text-text font-sans antialiased;
-  background-image:
-    radial-gradient(60rem 30rem at 10% -10%, rgba(163, 255, 91, 0.08), transparent 60%),
-    radial-gradient(50rem 30rem at 110% 10%, rgba(255, 91, 214, 0.08), transparent 60%);
+  letter-spacing: -0.01em;
 }
 
-.card {
-  @apply bg-surface border border-border rounded-2xl;
+/* ---------- surfaces (Zapline-style glass on near-black) ---------- */
+@utility glass {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+@utility card {
+  @apply glass rounded-3xl;
+}
+@utility glow-top {
+  position: relative;
+}
+.glow-top::before {
+  content: "";
+  position: absolute;
+  inset: 0 18% auto 18%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(163, 255, 91, 0.9), transparent);
+  pointer-events: none;
 }
 
+/* ---------- controls (Vaultra pills) ---------- */
 @utility btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition
+  @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition
     disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-lime/60;
 }
 @utility btn-primary {
+  @apply btn bg-text text-bg hover:bg-lime;
+}
+@utility btn-accent {
   @apply btn bg-lime text-bg hover:bg-lime/90;
 }
 @utility btn-secondary {
-  @apply btn bg-surface-2 text-text border border-border hover:border-muted/60;
+  @apply btn text-text border border-white/15 hover:border-white/40 bg-white/[0.03];
 }
 @utility btn-ghost {
   @apply btn text-muted hover:text-text;
 }
-
-.input {
-  @apply w-full rounded-xl bg-bg border border-border px-3 py-2.5 font-mono text-sm text-text
-    placeholder:text-muted/60 focus:outline-none focus:border-lime/60;
+@utility pill {
+  @apply inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.04] px-3.5 py-1.5 text-xs text-muted
+    backdrop-blur;
 }
 
-.label {
-  @apply block text-xs uppercase tracking-wider text-muted mb-1.5;
+@utility input {
+  @apply w-full rounded-2xl bg-black/40 border border-white/10 px-3.5 py-3 font-mono text-sm text-text
+    placeholder:text-muted/50 focus:outline-none focus:border-lime/60;
+}
+@utility label {
+  @apply block text-[11px] uppercase tracking-[0.14em] text-muted mb-1.5;
+}
+@utility tab {
+  @apply px-3.5 py-1.5 rounded-full text-sm font-medium text-muted hover:text-text transition;
+}
+@utility tab-active {
+  @apply bg-white/[0.08] text-text;
+}
+@utility kicker {
+  @apply text-[11px] uppercase tracking-[0.18em] text-muted;
 }
 
-.tab {
-  @apply px-3 py-1.5 rounded-lg text-sm font-medium text-muted hover:text-text transition;
+/* ---------- type ---------- */
+@utility display {
+  font-weight: 300;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
 }
-.tab-active {
-  @apply bg-surface-2 text-text;
+@utility gradient-text {
+  background: linear-gradient(90deg, #ffd2f1 0%, #ffffff 35%, #ffffff 65%, #cdd6ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+@utility gradient-lime {
+  background: linear-gradient(90deg, #a3ff5b, #e9ffd1 55%, #a3ff5b);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---------- motion (entrance, hairlines, chips) ---------- */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+@keyframes drift {
+  0% {
+    offset-distance: 0%;
+  }
+  100% {
+    offset-distance: 100%;
+  }
+}
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+@keyframes shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+@utility rise {
+  animation: rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@utility floaty {
+  animation: floaty 6s ease-in-out infinite;
+}
+.hairline {
+  position: absolute;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transform-origin: left center;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .floaty {
+    animation: none !important;
+  }
+  video {
+    display: none;
+  }
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  height: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #1f1f2a;
+  border-radius: 999px;
 }

@@ -1,0 +1,46 @@
+# docker compose -f deploy/vps/compose.yml --env-file deploy/vps/.env up -d --build
+# Host nginx terminates TLS and proxies nolossmeme.fun -> 127.0.0.1:3181, api.nolossmeme.fun -> 127.0.0.1:3182.
+name: nolossmeme
+
+services:
+  site:
+    build:
+      context: ../..
+      dockerfile: deploy/vps/site/Dockerfile
+      args:
+        VITE_INDEXER_URL: ${VITE_INDEXER_URL:-https://api.nolossmeme.fun}
+        VITE_TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
+    image: nolossmeme-site:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3181:80"
+
+  backend:
+    build:
+      context: ../..
+      dockerfile: services/backend/Dockerfile
+    image: nolossmeme-backend:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3182:8787"
+    volumes:
+      - backend-data:/data
+    environment:
+      NEAR_NETWORK: testnet
+      DATABASE_URL: file:/data/nolossmeme.db
+      PORT: "8787"
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://nolossmeme.fun}
+      LOG_LEVEL: info
+      KEEPER_ACCOUNT_ID: ${KEEPER_ACCOUNT_ID:-}
+      KEEPER_PRIVATE_KEY: ${KEEPER_PRIVATE_KEY:-}
+      FAUCET_ACCOUNT_ID: ${FAUCET_ACCOUNT_ID:-}
+      FAUCET_PRIVATE_KEY: ${FAUCET_PRIVATE_KEY:-}
+      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8787/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  backend-data:

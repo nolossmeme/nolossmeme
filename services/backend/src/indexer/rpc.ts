@@ -72,14 +72,16 @@ export class Rpc {
       // Another endpoint may be free right away; the caller retries after a short wait.
       throw new RateLimited(this.endpoints.length > 1 ? 50 : Math.min(cooldown, MAX_WAIT_MS));
     }
-    if (!res.ok) throw new Error(`${method}: HTTP ${res.status}`);
-    const body = (await res.json()) as RpcResponse<T>;
+    // Skipped heights come back as HTTP 422 with an UNKNOWN_BLOCK error body, so read the body first.
+    const body = (await res.json().catch(() => null)) as RpcResponse<T> | null;
+    if (!body) throw new Error(`${method}: HTTP ${res.status} with no JSON body`);
     if (body.error) {
       const name = body.error.cause?.name ?? body.error.name ?? "";
       if (name === "UNKNOWN_BLOCK")
         throw new UnknownBlock((params as { block_id: number }).block_id);
       throw new Error(`${method}: ${body.error.message ?? name}`);
     }
+    if (!res.ok) throw new Error(`${method}: HTTP ${res.status}`);
     if (body.result === undefined) throw new Error(`${method}: empty result`);
     return body.result;
   }

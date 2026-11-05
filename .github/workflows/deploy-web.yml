@@ -1,4 +1,5 @@
 name: deploy-web
+# GitHub Pages mirror at https://nolossmeme.github.io/nolossmeme/ ; production is the VPS (deploy/vps).
 
 on:
   push:
@@ -30,14 +31,14 @@ jobs:
       - name: Build landing (site root)
         run: pnpm --filter @nolossmeme/landing build
         env:
-          VITE_BASE: /
-          VITE_APP_URL: /app/
+          VITE_BASE: /nolossmeme/
+          VITE_APP_URL: /nolossmeme/app/
           VITE_INDEXER_URL: ${{ vars.INDEXER_URL }}
       - name: Build dApp (under /app)
         run: pnpm --filter @nolossmeme/web build
         env:
-          VITE_BASE: /app/
-          VITE_LANDING_URL: /
+          VITE_BASE: /nolossmeme/app/
+          VITE_LANDING_URL: /nolossmeme/
           VITE_INDEXER_URL: ${{ vars.INDEXER_URL }}
       - name: Assemble one Pages artifact
         run: |

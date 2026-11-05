@@ -44,4 +44,12 @@ export const SCHEMA: string[] = [
      epoch_index INTEGER NOT NULL,
      PRIMARY KEY (pool, taken_at)
    )`,
+  `CREATE TABLE IF NOT EXISTS faucet_claims (
+     account_id TEXT NOT NULL,
+     ip TEXT NOT NULL,
+     claimed_at INTEGER NOT NULL,
+     tx_hash TEXT NOT NULL
+   )`,
+  `CREATE INDEX IF NOT EXISTS faucet_claims_account ON faucet_claims (account_id, claimed_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS faucet_claims_ip ON faucet_claims (ip, claimed_at DESC)`,
 ];

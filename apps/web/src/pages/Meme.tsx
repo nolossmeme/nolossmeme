@@ -22,6 +22,7 @@ import { ActivityFeed } from "../components/ActivityFeed";
 import { AmountInput } from "../components/AmountInput";
 import { Countdown } from "../components/Countdown";
 import { DrawLog } from "../components/DrawLog";
+import { FaucetCard } from "../components/FaucetCard";
 import { FloorChart } from "../components/FloorChart";
 import { Leaderboard } from "../components/Leaderboard";
 import { MemeIcon } from "../components/MemeIcon";
@@ -31,6 +32,7 @@ import { useAccountActivity, usePoolActivity, usePoolSeries } from "../hooks/use
 import { useMeme } from "../hooks/useMemes";
 import { useDepositors, useDraws, useMyPosition, usePoolState } from "../hooks/usePool";
 import { explorerAccount } from "../lib/client";
+import { faucetEnabled } from "../lib/faucet";
 import { indexerEnabled } from "../lib/indexer";
 import { useTx } from "../lib/wallet";
 
@@ -141,6 +143,8 @@ export function MemePage() {
           </p>
         </div>
       </section>
+
+      {faucetEnabled && <FaucetCard accountId={tx.signedAccountId || undefined} />}
 
       {indexerEnabled && (
         <section className="grid lg:grid-cols-[1fr_1.4fr] gap-6">

@@ -7,6 +7,8 @@ import type { IndexedEvent } from "../indexer/events.js";
 
 export interface ApiDeps {
   store: Store;
+  /** Optional sub-app mounted at /faucet. */
+  faucet?: Hono;
   corsOrigin: string;
   head: () => number | null;
   startedAt: number;
@@ -32,7 +34,7 @@ function int(v: string | undefined, fallback: number, max: number): number {
   return Number.isFinite(n) && n > 0 ? Math.min(Math.floor(n), max) : fallback;
 }
 
-export function createApp({ store, corsOrigin, head, startedAt }: ApiDeps): Hono {
+export function createApp({ store, corsOrigin, head, startedAt, faucet }: ApiDeps): Hono {
   const app = new Hono();
   app.use("*", cors({ origin: corsOrigin }));
 
@@ -138,6 +140,8 @@ export function createApp({ store, corsOrigin, head, startedAt }: ApiDeps): Hono
       }),
     );
   });
+
+  if (faucet) app.route("/faucet", faucet);
 
   return app;
 }

@@ -2,8 +2,9 @@ import { serve } from "@hono/node-server";
 import { NoLossMemeClient } from "@nolossmeme/sdk";
 
 import { createApp } from "./api/app.js";
+import { createFaucet } from "./api/faucet.js";
 import { loadConfig } from "./config.js";
-import { openDb } from "./db/client.js";
+import { openDb, type Db } from "./db/client.js";
 import { Store } from "./db/store.js";
 import { NearData } from "./indexer/neardata.js";
 import { Rpc } from "./indexer/rpc.js";
@@ -61,11 +62,24 @@ async function main(): Promise<void> {
         )
       : () => undefined;
 
+  const faucet =
+    cfg.FAUCET_ACCOUNT_ID && cfg.FAUCET_PRIVATE_KEY && cfg.TURNSTILE_SECRET_KEY
+      ? await buildFaucet(
+          db,
+          cfg.rpcUrl,
+          cfg.FAUCET_ACCOUNT_ID,
+          cfg.FAUCET_PRIVATE_KEY,
+          cfg.TURNSTILE_SECRET_KEY,
+          cfg.FAUCET_AMOUNT_NEAR,
+          cfg.FAUCET_COOLDOWN_HOURS,
+        )
+      : undefined;
   const app = createApp({
     store,
     corsOrigin: cfg.CORS_ORIGIN,
     head: () => head,
     startedAt: Date.now(),
+    ...(faucet ? { faucet } : {}),
   });
   const server = roles.has("api")
     ? serve({ fetch: app.fetch, port: cfg.PORT }, (info) =>
@@ -93,6 +107,41 @@ async function main(): Promise<void> {
 
   if (roles.has("scanner")) await scanner.run();
   else log.info("scanner disabled in this role", { roles: [...roles] });
+}
+
+async function buildFaucet(
+  db: Db,
+  rpcUrl: string,
+  accountId: string,
+  privateKey: string,
+  turnstileSecret: string,
+  amountNear: number,
+  cooldownHours: number,
+) {
+  const { Account, JsonRpcProvider } = await import("near-api-js");
+  type KeyPairString = ConstructorParameters<typeof Account>[2];
+  const provider = new JsonRpcProvider({ url: rpcUrl });
+  const sender = new Account(accountId, provider, privateKey as KeyPairString);
+  const amountYocto = BigInt(Math.round(amountNear * 1_000_000)) * 10n ** 18n;
+  log.info("faucet enabled", { accountId, amountNear, cooldownHours });
+  return createFaucet({
+    db,
+    amountYocto,
+    cooldownMs: cooldownHours * 3_600_000,
+    turnstileSecret,
+    send: async (to, amount) => {
+      const outcome = await sender.transfer({ receiverId: to, amount });
+      return outcome.transaction.hash;
+    },
+    accountExists: async (id) => {
+      try {
+        await provider.viewAccount({ accountId: id });
+        return true;
+      } catch {
+        return false;
+      }
+    },
+  });
 }
 
 main().catch((e: unknown) => {

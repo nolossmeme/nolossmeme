@@ -30,6 +30,12 @@ const Env = z.object({
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   /** Which parts to run in this process: `all`, or any comma list of `api`, `scanner`, `jobs`. */
   ROLE: z.string().default("all"),
+  /** Testnet faucet (optional): sender account, its key, Turnstile secret, grant size and cooldown. */
+  FAUCET_ACCOUNT_ID: z.string().optional(),
+  FAUCET_PRIVATE_KEY: z.string().optional(),
+  TURNSTILE_SECRET_KEY: z.string().optional(),
+  FAUCET_AMOUNT_NEAR: z.coerce.number().positive().default(1),
+  FAUCET_COOLDOWN_HOURS: z.coerce.number().positive().default(24),
 });
 
 /** Free endpoints that serve `EXPERIMENTAL_changes_in_block`; rotating spreads the per-endpoint limits. */

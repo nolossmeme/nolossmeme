@@ -336,3 +336,24 @@ describe("Rpc cooldown", async () => {
     expect(hits.filter((h) => h === "http://fast")).toHaveLength(5);
   });
 });
+
+describe("Rpc unknown block over HTTP 422", async () => {
+  const { Rpc, UnknownBlock } = await import("../src/indexer/rpc.js");
+  it("maps a 422 UNKNOWN_BLOCK body to UnknownBlock instead of a transport error", async () => {
+    const body = {
+      jsonrpc: "2.0",
+      error: {
+        name: "HANDLER_ERROR",
+        cause: { name: "UNKNOWN_BLOCK" },
+        code: -32000,
+        message: "Server error",
+      },
+      id: 1,
+    };
+    const rpc = new Rpc("http://rpc", {
+      rps: 100,
+      fetchImpl: () => Promise.resolve(new Response(JSON.stringify(body), { status: 422 })),
+    });
+    await expect(rpc.touchedAccounts(276220816)).rejects.toBeInstanceOf(UnknownBlock);
+  });
+});

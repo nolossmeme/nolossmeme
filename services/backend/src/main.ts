@@ -1,9 +1,10 @@
 import { serve } from "@hono/node-server";
 import { NoLossMemeClient } from "@nolossmeme/sdk";
+import type { Hono } from "hono";
 
 import { createApp } from "./api/app.js";
 import { createFaucet } from "./api/faucet.js";
-import { loadConfig } from "./config.js";
+import { loadConfig, type Config } from "./config.js";
 import { openDb, type Db } from "./db/client.js";
 import { Store } from "./db/store.js";
 import { NearData } from "./indexer/neardata.js";
@@ -14,6 +15,65 @@ import { startSnapshotJob } from "./jobs/snapshots.js";
 import { startSponsorJob } from "./jobs/sponsor.js";
 import { log, setLogLevel } from "./log.js";
 
+type Stop = () => void;
+const noop: Stop = () => undefined;
+const yocto = (near: number): bigint => BigInt(Math.round(near * 1_000_000)) * 10n ** 18n;
+
+function parseRoles(role: string): Set<string> {
+  return new Set(
+    role === "all" ? ["api", "scanner", "jobs"] : role.split(",").map((r) => r.trim()),
+  );
+}
+
+/** Background jobs; each one is optional and returns its own stop function. */
+function startJobs(
+  cfg: Config,
+  store: Store,
+  jobsClient: NoLossMemeClient,
+  head: () => number | null,
+): Stop[] {
+  const stops: Stop[] = [startSnapshotJob(store, jobsClient, cfg.SNAPSHOT_INTERVAL_MS, head)];
+  if (cfg.KEEPER_ACCOUNT_ID && cfg.KEEPER_PRIVATE_KEY) {
+    stops.push(
+      startKeeperJob(
+        store,
+        jobsClient,
+        cfg.jobsRpcUrl,
+        cfg.KEEPER_ACCOUNT_ID,
+        cfg.KEEPER_PRIVATE_KEY,
+        cfg.KEEPER_INTERVAL_MS,
+      ),
+    );
+  }
+  // The yield subsidy only makes sense where staking pays nothing.
+  if (cfg.NEAR_NETWORK === "testnet" && cfg.SPONSOR_ACCOUNT_ID && cfg.SPONSOR_PRIVATE_KEY) {
+    stops.push(
+      startSponsorJob(store, jobsClient, {
+        rpcUrl: cfg.jobsRpcUrl,
+        accountId: cfg.SPONSOR_ACCOUNT_ID,
+        privateKey: cfg.SPONSOR_PRIVATE_KEY,
+        amountYocto: yocto(cfg.SPONSOR_AMOUNT_NEAR),
+        intervalMs: cfg.SPONSOR_INTERVAL_HOURS * 3_600_000,
+      }),
+    );
+  }
+  return stops;
+}
+
+async function maybeFaucet(cfg: Config, db: Db): Promise<Hono | undefined> {
+  if (!cfg.FAUCET_ACCOUNT_ID || !cfg.FAUCET_PRIVATE_KEY || !cfg.TURNSTILE_SECRET_KEY)
+    return undefined;
+  return buildFaucet(
+    db,
+    cfg.jobsRpcUrl,
+    cfg.FAUCET_ACCOUNT_ID,
+    cfg.FAUCET_PRIVATE_KEY,
+    cfg.TURNSTILE_SECRET_KEY,
+    cfg.FAUCET_AMOUNT_NEAR,
+    cfg.FAUCET_COOLDOWN_HOURS,
+  );
+}
+
 async function main(): Promise<void> {
   const cfg = loadConfig();
   setLogLevel(cfg.LOG_LEVEL);
@@ -23,19 +83,17 @@ async function main(): Promise<void> {
   // Jobs read and write over their own endpoint; see JOBS_RPC_URL.
   const jobsClient = new NoLossMemeClient({ ...cfg.network, rpcUrl: cfg.jobsRpcUrl });
   const data = new NearData(cfg.neardataUrl, { rps: cfg.NEARDATA_RPS });
+  const roles = parseRoles(cfg.ROLE);
 
-  const roles = new Set(
-    cfg.ROLE === "all" ? ["api", "scanner", "jobs"] : cfg.ROLE.split(",").map((r) => r.trim()),
-  );
   let head: number | null = null;
-  const headTracker = setInterval(
-    () =>
-      void data
-        .lastFinalHeight()
-        .then((h) => (head = h))
-        .catch(() => undefined),
-    10_000,
-  );
+  const trackHead = (): void => {
+    data
+      .lastFinalHeight()
+      .then((h) => (head = h))
+      .catch(() => undefined);
+  };
+  const headTracker = setInterval(trackHead, 10_000);
+
   const scanner = new Scanner(
     data,
     store,
@@ -49,47 +107,9 @@ async function main(): Promise<void> {
       rpcConcurrency: cfg.RPC_CONCURRENCY,
     },
   );
+  const stops = roles.has("jobs") ? startJobs(cfg, store, jobsClient, () => head) : [noop];
 
-  const stopSnapshots = roles.has("jobs")
-    ? startSnapshotJob(store, jobsClient, cfg.SNAPSHOT_INTERVAL_MS, () => head)
-    : () => undefined;
-  const stopKeeper =
-    roles.has("jobs") && cfg.KEEPER_ACCOUNT_ID && cfg.KEEPER_PRIVATE_KEY
-      ? startKeeperJob(
-          store,
-          jobsClient,
-          cfg.jobsRpcUrl,
-          cfg.KEEPER_ACCOUNT_ID,
-          cfg.KEEPER_PRIVATE_KEY,
-          cfg.KEEPER_INTERVAL_MS,
-        )
-      : () => undefined;
-  const stopSponsor =
-    roles.has("jobs") &&
-    cfg.NEAR_NETWORK === "testnet" &&
-    cfg.SPONSOR_ACCOUNT_ID &&
-    cfg.SPONSOR_PRIVATE_KEY
-      ? startSponsorJob(store, jobsClient, {
-          rpcUrl: cfg.jobsRpcUrl,
-          accountId: cfg.SPONSOR_ACCOUNT_ID,
-          privateKey: cfg.SPONSOR_PRIVATE_KEY,
-          amountYocto: BigInt(Math.round(cfg.SPONSOR_AMOUNT_NEAR * 1_000_000)) * 10n ** 18n,
-          intervalMs: cfg.SPONSOR_INTERVAL_HOURS * 3_600_000,
-        })
-      : () => undefined;
-
-  const faucet =
-    cfg.FAUCET_ACCOUNT_ID && cfg.FAUCET_PRIVATE_KEY && cfg.TURNSTILE_SECRET_KEY
-      ? await buildFaucet(
-          db,
-          cfg.jobsRpcUrl,
-          cfg.FAUCET_ACCOUNT_ID,
-          cfg.FAUCET_PRIVATE_KEY,
-          cfg.TURNSTILE_SECRET_KEY,
-          cfg.FAUCET_AMOUNT_NEAR,
-          cfg.FAUCET_COOLDOWN_HOURS,
-        )
-      : undefined;
+  const faucet = await maybeFaucet(cfg, db);
   const app = createApp({
     store,
     corsOrigin: cfg.CORS_ORIGIN,
@@ -108,12 +128,10 @@ async function main(): Promise<void> {
       )
     : null;
 
-  const shutdown = () => {
+  const shutdown = (): void => {
     log.info("shutting down");
     scanner.stop();
-    stopSnapshots();
-    stopKeeper();
-    stopSponsor();
+    for (const stop of stops) stop();
     clearInterval(headTracker);
     server?.close();
     db.close();

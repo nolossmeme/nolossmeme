@@ -51,7 +51,10 @@ export class Rpc {
       const ep = this.endpoints[this.next++ % this.endpoints.length]!;
       if (ep.cooldownUntil <= now) return ep;
     }
-    return this.endpoints.reduce((a, b) => (a.cooldownUntil <= b.cooldownUntil ? a : b));
+    return this.endpoints.reduce(
+      (a, b) => (a.cooldownUntil <= b.cooldownUntil ? a : b),
+      this.endpoints[0]!,
+    );
   }
 
   private async call<T>(method: string, params: unknown): Promise<T> {

@@ -4,14 +4,14 @@ import { z } from "zod";
 const Env = z.object({
   NEAR_NETWORK: z.enum(["testnet", "mainnet"]).default("testnet"),
   FACTORY_ID: z.string().optional(),
-  RPC_URL: z.string().url().optional(),
+  RPC_URL: z.url().optional(),
   /** Comma-separated RPC endpoints to rotate for the block pre-filter (each has the same per-endpoint rate limit). */
   RPC_URLS: z.string().optional(),
   /** RPC for jobs that read state and sign transactions (keeper, sponsor, faucet, snapshots). Kept
    *  separate from the scanner so indexing can never use up the quota the money paths need. */
-  JOBS_RPC_URL: z.string().url().optional(),
+  JOBS_RPC_URL: z.url().optional(),
   /** FastNEAR's free block archive, NEAR Lake format: https://testnet.neardata.xyz/v0/block/{height} */
-  NEARDATA_URL: z.string().url().optional(),
+  NEARDATA_URL: z.url().optional(),
   DATABASE_URL: z.string().default("file:./data/nolossmeme.db"),
   DATABASE_AUTH_TOKEN: z.string().optional(),
   /** First block to index. Defaults to a height just before `pad.nolossmeme.testnet` was deployed (2026-11-09). */

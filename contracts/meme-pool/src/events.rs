@@ -90,6 +90,19 @@ pub fn withdraw_near(account_id: &AccountId, amount: u128, fee: u128) {
     );
 }
 
+/// NEAR a sponsor added to the treasury (staked; all resulting shares back MEME).
+pub fn fund(account_id: &AccountId, amount: u128, shares: u128) {
+    emit(
+        "fund",
+        VaultEvent {
+            account_id,
+            amount: U128(amount),
+            shares: Some(U128(shares)),
+            fee: None,
+        },
+    );
+}
+
 pub fn redeem(account_id: &AccountId, amount: u128, shares: u128) {
     emit(
         "redeem",

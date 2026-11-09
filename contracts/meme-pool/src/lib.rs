@@ -51,8 +51,10 @@ pub struct Contract {
     total_principal: u128,
     /// stNEAR shares the vault owns on the staking pool (principal cover + treasury).
     total_shares: u128,
-    /// stNEAR shares backing MEME. Grows on yield sweeps, shrinks on redeem.
+    /// stNEAR shares backing MEME. Grows on yield sweeps and sponsor funding, shrinks on redeem.
     treasury_shares: u128,
+    /// NEAR sponsors added straight to the treasury through `fund_treasury` (never principal).
+    total_funded: u128,
     /// Last observed yocto NEAR per stNEAR.
     st_near_price: u128,
     epoch_index: u32,
@@ -102,6 +104,7 @@ impl Contract {
             total_principal: 0,
             total_shares: 0,
             treasury_shares: 0,
+            total_funded: 0,
             st_near_price: ONE_NEAR,
             epoch_index: 0,
             epoch_start: now,

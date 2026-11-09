@@ -69,6 +69,55 @@ impl Contract {
         }
     }
 
+    /// Sponsor the pot: stake NEAR straight into the treasury. Nothing is credited as principal,
+    /// so the funder cannot withdraw it; it only raises the floor every MEME is redeemable at.
+    /// Meant for creators seeding a launch, partners, or (on testnet, where validators pay no
+    /// rewards) a transparent yield subsidy. Same minimum as a deposit.
+    #[payable]
+    pub fn fund_treasury(&mut self) -> Promise {
+        let funder = env::predecessor_account_id();
+        let amount = env::attached_deposit().as_yoctonear();
+        require!(amount >= self.params.min_deposit.0, "below min_deposit");
+        Promise::new(self.params.staking_pool.clone())
+            .function_call(
+                "deposit_and_stake".to_string(),
+                b"{}".to_vec(),
+                NearToken::from_yoctonear(amount),
+                GAS_STAKE,
+            )
+            .then(
+                Self::ext(env::current_account_id())
+                    .with_static_gas(GAS_CB_SMALL)
+                    .on_funded(funder, U128(amount)),
+            )
+    }
+
+    #[private]
+    pub fn on_funded(
+        &mut self,
+        funder: AccountId,
+        amount: U128,
+        #[callback_result] shares: Result<U128, PromiseError>,
+    ) -> U128 {
+        match shares {
+            Ok(shares) if shares.0 > 0 => {
+                self.total_shares += shares.0;
+                self.treasury_shares += shares.0;
+                self.total_funded += amount.0;
+                self.st_near_price = mul_div(amount.0, ONE_NEAR, shares.0);
+                events::fund(&funder, amount.0, shares.0);
+                shares
+            }
+            _ => {
+                events::deposit_refunded(&funder, amount.0);
+                Promise::new(funder)
+                    .transfer(NearToken::from_yoctonear(amount.0))
+                    .detach();
+                U128(0)
+            }
+        }
+    }
+
     /// Withdraw principal as stNEAR: instant, no fee, worth exactly `amount` NEAR at the
     /// current price. `None` withdraws everything.
     pub fn withdraw(&mut self, amount: Option<U128>) -> Promise {

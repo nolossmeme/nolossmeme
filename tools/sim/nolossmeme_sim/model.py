@@ -18,7 +18,7 @@ SECONDS_PER_YEAR = 31_536_000
 
 def near(amount: float) -> int:
     """Whole/fractional NEAR -> yocto without float drift (6 decimals of precision)."""
-    return int(round(amount * 1_000_000)) * (ONE_NEAR // 1_000_000)
+    return round(amount * 1_000_000) * (ONE_NEAR // 1_000_000)
 
 
 @dataclass(frozen=True)
@@ -31,6 +31,8 @@ class Params:
     jackpot_bps: int = 7_000
     streak_step_bps: int = 1_000
     max_streak_bonus_bps: int = 5_000
+    # check-ins the community needs per epoch; a miss burns the community share (0 means 1)
+    checkin_target: int = 1
 
 
 @dataclass(frozen=True)
@@ -70,6 +72,8 @@ class EpochRecord:
     floor: int
     jackpot: int
     winner: int | None
+    burned: int = 0
+    community_streak: int = 0
 
 
 @dataclass
@@ -80,6 +84,8 @@ class PoolSim:
     depositors: list[Depositor] = field(default_factory=list)
     treasury: int = 0
     supply: int = 0
+    community_streak: int = 0
+    best_streak: int = 0
     history: list[EpochRecord] = field(default_factory=list)
 
     def __post_init__(self) -> None:
@@ -127,14 +133,20 @@ class PoolSim:
         minted = jackpot = 0
         winner: int | None = None
         checkins = sum(1 for d in self.depositors if d.checked_in)
+        hit = checkins >= max(p.checkin_target, 1)
+        self.community_streak = self.community_streak + 1 if hit else 0
+        self.best_streak = max(self.best_streak, self.community_streak)
+        burned = 0
         if total_w > 0 and emission > 0:
             jackpot = emission * p.jackpot_bps // BPS
             winner = self.rng.choices(range(len(self.depositors)), weights=weights)[0]
             self.depositors[winner].won += jackpot
             minted += jackpot
-            if checkins > 0:
+            if hit:
                 each = (emission - jackpot) // checkins
                 minted += each * checkins
+            else:
+                burned = emission - jackpot
         self.supply += minted
 
         # joins and exits land at the epoch boundary, after the draw
@@ -157,6 +169,8 @@ class PoolSim:
             floor=self.floor(),
             jackpot=jackpot,
             winner=winner,
+            burned=burned,
+            community_streak=self.community_streak,
         )
         self.history.append(rec)
         return rec

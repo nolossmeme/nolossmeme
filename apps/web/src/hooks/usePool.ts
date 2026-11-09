@@ -45,3 +45,12 @@ export function useStNearPrice() {
     staleTime: 60_000,
   });
 }
+
+export function usePending(pool: string | undefined, accountId: string | undefined) {
+  return useQuery({
+    queryKey: ["pool", pool, "pending", accountId],
+    queryFn: () => client.getPending(pool ?? "", accountId ?? ""),
+    enabled: Boolean(pool && accountId),
+    refetchInterval: 30_000,
+  });
+}

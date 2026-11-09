@@ -367,14 +367,28 @@ impl Contract {
         )
     }
 
+    /// Pay `shares` stNEAR to `receiver`. Meta Pool only credits registered accounts, so the
+    /// receiver is registered in the same batch (atomic: both actions apply or neither does).
+    /// Meta Pool refunds the storage fee to us when the receiver is already registered, so the
+    /// pool only pays it once per new receiver.
     pub(crate) fn ft_transfer_st_near(&self, receiver: &AccountId, shares: u128) -> Promise {
-        let args = near_sdk::serde_json::json!({ "receiver_id": receiver, "amount": U128(shares) });
-        Promise::new(self.params.staking_pool.clone()).function_call(
-            "ft_transfer".to_string(),
-            args.to_string().into_bytes(),
-            NearToken::from_yoctonear(1),
-            GAS_FT_TRANSFER,
-        )
+        let register =
+            near_sdk::serde_json::json!({ "account_id": receiver, "registration_only": true });
+        let transfer =
+            near_sdk::serde_json::json!({ "receiver_id": receiver, "amount": U128(shares) });
+        Promise::new(self.params.staking_pool.clone())
+            .function_call(
+                "storage_deposit".to_string(),
+                register.to_string().into_bytes(),
+                STAKING_POOL_STORAGE,
+                GAS_STORAGE_DEPOSIT,
+            )
+            .function_call(
+                "ft_transfer".to_string(),
+                transfer.to_string().into_bytes(),
+                NearToken::from_yoctonear(1),
+                GAS_FT_TRANSFER,
+            )
     }
 
     fn cleanup_depositor(&mut self, account: &AccountId) {

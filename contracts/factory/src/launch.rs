@@ -9,7 +9,8 @@ use crate::{Contract, ContractExt};
 const GAS_INIT: Gas = Gas::from_tgas(30);
 const GAS_CALLBACK: Gas = Gas::from_tgas(10);
 /// Allowance for the new pool's own state (token, depositors, draws) on top of its code.
-pub(crate) const STATE_ALLOWANCE: NearToken = NearToken::from_millinear(500);
+/// Covers the pool's own state and registering stNEAR receivers on Meta Pool (0.00125 Ⓝ each).
+pub(crate) const STATE_ALLOWANCE: NearToken = NearToken::from_near(1);
 const MAX_SLUG_LEN: usize = 32;
 
 #[near]

@@ -15,6 +15,7 @@ import {
   formatMeme,
   formatNear,
   type Draw,
+  type MemeInfo,
   type NetworkId,
 } from "@nolossmeme/sdk";
 import { Account, JsonRpcProvider, teraToGas, type KeyPairString } from "near-api-js";
@@ -27,6 +28,40 @@ const config = {
   factory: process.env.FACTORY_ID ?? NETWORKS[networkId].factory,
 };
 const dryRun = process.env.DRY_RUN === "1";
+
+/** Decide and, if due, draw one pool. */
+async function handlePool(
+  client: NoLossMemeClient,
+  signer: Account | undefined,
+  meme: MemeInfo,
+): Promise<void> {
+  const pool = meme.account_id;
+  const state = await client.getPoolState(pool);
+  const decision = decide(state);
+  if (!decision.draw) {
+    console.log(`[keeper] ${pool}: skip (${decision.reason})`);
+    return;
+  }
+  if (!signer) {
+    console.log(`[keeper] ${pool}: would draw epoch #${state.epoch_index}`);
+    return;
+  }
+  const draw = await signer.callFunction<Draw>({
+    contractId: pool,
+    methodName: "draw",
+    args: {},
+    gas: teraToGas("300"),
+    deposit: 0n,
+  });
+  if (!draw) {
+    console.log(`[keeper] ${pool}: price lookup failed, pool unlocked, will retry next run`);
+    return;
+  }
+  const winner = draw.winner ?? "none";
+  console.log(
+    `[keeper] ${pool}: drew epoch #${draw.epoch} winner=${winner} jackpot=${formatMeme(draw.jackpot, 0)} ${meme.symbol} yield=${formatNear(draw.yield_near, 6)} Ⓝ`,
+  );
+}
 
 async function main(): Promise<void> {
   const client = new NoLossMemeClient(config);
@@ -46,35 +81,11 @@ async function main(): Promise<void> {
 
   let failures = 0;
   for (const meme of memes) {
-    const pool = meme.account_id;
     try {
-      const state = await client.getPoolState(pool);
-      const decision = decide(state);
-      if (!decision.draw) {
-        console.log(`[keeper] ${pool}: skip (${decision.reason})`);
-        continue;
-      }
-      if (!signer) {
-        console.log(`[keeper] ${pool}: would draw epoch #${state.epoch_index}`);
-        continue;
-      }
-      const draw = await signer.callFunction<Draw>({
-        contractId: pool,
-        methodName: "draw",
-        args: {},
-        gas: teraToGas("300"),
-        deposit: 0n,
-      });
-      if (!draw) {
-        console.log(`[keeper] ${pool}: price lookup failed, pool unlocked, will retry next run`);
-        continue;
-      }
-      console.log(
-        `[keeper] ${pool}: drew epoch #${draw.epoch} winner=${draw.winner ?? "none"} jackpot=${formatMeme(draw.jackpot, 0)} ${meme.symbol} yield=${formatNear(draw.yield_near, 6)} Ⓝ`,
-      );
+      await handlePool(client, signer, meme);
     } catch (e) {
       failures += 1;
-      console.error(`[keeper] ${pool}: failed`, e instanceof Error ? e.message : e);
+      console.error(`[keeper] ${meme.account_id}: failed`, e instanceof Error ? e.message : e);
     }
   }
   if (failures > 0) process.exitCode = 1;

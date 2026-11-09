@@ -1,4 +1,11 @@
-import { formatMeme, formatNear, nsToDate, type MemeInfo, type PoolState } from "@nolossmeme/sdk";
+import {
+  formatMeme,
+  formatNear,
+  nsToDate,
+  plural,
+  type MemeInfo,
+  type PoolState,
+} from "@nolossmeme/sdk";
 import { useEffect, useState } from "react";
 
 import { appLink } from "../lib/config";
@@ -62,8 +69,8 @@ export function MemeCard({ meme, state }: { meme: MemeInfo; state: PoolState | u
         </div>
       </dl>
       <div className="flex justify-between text-xs text-muted">
-        <span>{state?.depositors ?? "…"} depositors</span>
-        <span>{state?.draws ?? "…"} draws</span>
+        <span>{state ? plural(state.depositors, "depositor") : "… depositors"}</span>
+        <span>{state ? plural(state.draws, "draw") : "… draws"}</span>
       </div>
     </a>
   );

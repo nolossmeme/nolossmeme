@@ -1,4 +1,4 @@
-import { formatMeme, formatNear, nsToDate, type MemeInfo } from "@nolossmeme/sdk";
+import { formatMeme, formatNear, nsToDate, plural, type MemeInfo } from "@nolossmeme/sdk";
 import { Link } from "react-router-dom";
 
 import { usePoolState } from "../hooks/usePool";
@@ -47,8 +47,8 @@ export function MemeCard({ meme }: { meme: MemeInfo }) {
         </div>
       </dl>
       <div className="text-xs text-muted flex justify-between">
-        <span>{state?.depositors ?? "…"} depositors</span>
-        <span>{state?.draws ?? "…"} draws</span>
+        <span>{state ? plural(state.depositors, "depositor") : "… depositors"}</span>
+        <span>{state ? plural(state.draws, "draw") : "… draws"}</span>
       </div>
     </Link>
   );

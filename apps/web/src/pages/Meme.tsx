@@ -9,6 +9,7 @@ import {
   nsToSeconds,
   parseMeme,
   parseNear,
+  plural,
   secondsUntilDraw,
   splitEmission,
   winChance,
@@ -98,7 +99,7 @@ export function MemePage() {
           <StatTile
             label="NEAR locked"
             value={`${formatNear(state.total_principal, 2)} Ⓝ`}
-            hint={`${state.depositors} depositors`}
+            hint={plural(state.depositors, "depositor")}
           />
           <StatTile
             label="Floor price"
@@ -142,8 +143,8 @@ export function MemePage() {
             <FloorChart draws={draws ?? []} />
           )}
           <p className="mt-3 text-xs text-muted">
-            Floor = treasury ÷ supply. The treasury only receives staking yield, and every{" "}
-            {meme.symbol} can be burned for its share.
+            Floor = treasury ÷ supply. The treasury only receives staking yield and sponsor funding,
+            never principal, and every {meme.symbol} can be burned for its share.
           </p>
         </div>
       </section>

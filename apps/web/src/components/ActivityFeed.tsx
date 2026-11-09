@@ -13,6 +13,7 @@ const LABEL: Record<IndexedEvent["kind"], string> = {
   draw: "won the jackpot",
   draw_aborted: "draw aborted, retrying",
   redeem: "redeemed",
+  fund: "sponsored the treasury with",
   ft_mint: "received",
   ft_burn: "burned",
   ft_transfer: "transferred",
@@ -28,6 +29,7 @@ const ICON: Record<IndexedEvent["kind"], string> = {
   draw: "🎰",
   draw_aborted: "⚠️",
   redeem: "🔥",
+  fund: "💎",
   ft_mint: "✨",
   ft_burn: "🔥",
   ft_transfer: "➡️",
@@ -35,7 +37,7 @@ const ICON: Record<IndexedEvent["kind"], string> = {
 
 function amount(e: IndexedEvent, symbol: string): string {
   if (!e.amount) return "";
-  if (["deposit", "deposit_refunded", "withdraw", "withdraw_near"].includes(e.kind))
+  if (["deposit", "deposit_refunded", "withdraw", "withdraw_near", "fund"].includes(e.kind))
     return `${formatNear(e.amount, 3)} Ⓝ`;
   return `${formatMeme(e.amount, 1)} ${symbol}`;
 }

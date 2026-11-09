@@ -15,6 +15,7 @@ const ONE_NEAR: u128 = 1_000_000_000_000_000_000_000_000;
 const LIQUID_UNSTAKE_FEE_BPS: u128 = 30;
 /// Meta Pool's `min_deposit_amount` on testnet.
 const MIN_DEPOSIT: u128 = ONE_NEAR;
+const STORAGE_FEE: u128 = 1_250_000_000_000_000_000_000;
 
 fn mul_div(a: u128, b: u128, c: u128) -> u128 {
     (U256::from(a) * U256::from(b) / U256::from(c)).as_u128()
@@ -92,6 +93,11 @@ impl Contract {
     pub fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option<String>) {
         assert_one_yocto();
         let _ = memo;
+        // Like the deployed Meta Pool: the receiver must be registered first.
+        require!(
+            self.accounts.contains_key(&receiver_id),
+            format!("account {receiver_id} is not registered")
+        );
         let sender = env::predecessor_account_id();
         let mut from = self.account(&sender);
         require!(from.shares >= amount.0, "not enough stNEAR");
@@ -100,6 +106,31 @@ impl Contract {
         to.shares += amount.0;
         self.accounts.insert(sender, from);
         self.accounts.insert(receiver_id, to);
+    }
+
+    /// NEP-145 registration (fixed 0.00125 NEAR like Meta Pool; refunds when already registered).
+    #[payable]
+    pub fn storage_deposit(
+        &mut self,
+        account_id: Option<AccountId>,
+        registration_only: Option<bool>,
+    ) -> near_sdk::serde_json::Value {
+        let _ = registration_only;
+        let id = account_id.unwrap_or_else(env::predecessor_account_id);
+        let attached = env::attached_deposit().as_yoctonear();
+        let refund = if self.accounts.contains_key(&id) {
+            attached
+        } else {
+            require!(attached >= STORAGE_FEE, "not enough attached for storage");
+            self.accounts.insert(id, Account::default());
+            attached - STORAGE_FEE
+        };
+        if refund > 0 {
+            Promise::new(env::predecessor_account_id())
+                .transfer(NearToken::from_yoctonear(refund))
+                .detach();
+        }
+        near_sdk::serde_json::json!({ "total": STORAGE_FEE.to_string(), "available": "0" })
     }
 
     pub fn ft_balance_of(&self, account_id: AccountId) -> U128 {

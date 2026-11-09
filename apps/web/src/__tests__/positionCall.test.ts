@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { buildPositionCall, submitLabel, type PositionInput } from "../lib/positionCall";
 
 const base: PositionInput = {
-  pool: "dogn.pad.nolossmeme.testnet",
+  pool: "dogn.fun.nolossmeme.testnet",
   tab: "deposit",
   amount: "",
   asNear: false,

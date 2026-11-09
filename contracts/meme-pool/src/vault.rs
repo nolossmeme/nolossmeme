@@ -255,15 +255,52 @@ impl Contract {
         #[callback_result] result: Result<(), PromiseError>,
     ) -> U128 {
         self.in_flight -= 1;
-        require!(
-            result.is_ok(),
-            "staking pool withdraw failed; funds remain in the pool's available balance"
-        );
+        if result.is_err() {
+            // The NEAR sits in our available balance on the staking pool. Never panic here (it
+            // would roll back the in-flight counter and block draws); park it for a retry.
+            let owed = self.pending_payouts.get(&account).copied().unwrap_or(0) + near.0;
+            self.pending_payouts.insert(account.clone(), owed);
+            log!(
+                "staking pool withdraw failed; {} yoctoNEAR parked for claim_pending",
+                near.0
+            );
+            return U128(0);
+        }
         events::withdraw_near(&account, near.0, fee.0);
         Promise::new(account)
             .transfer(NearToken::from_yoctonear(near.0))
             .detach();
         near
+    }
+}
+
+#[near]
+impl Contract {
+    /// Retry a `withdraw_near` payout whose last step failed: pulls the parked NEAR from the
+    /// staking pool's available balance and sends it to the caller.
+    pub fn claim_pending(&mut self) -> Promise {
+        let account = env::predecessor_account_id();
+        let owed = self.pending_payouts.remove(&account).unwrap_or(0);
+        require!(owed > 0, "nothing pending");
+        self.in_flight += 1;
+        Promise::new(self.params.staking_pool.clone())
+            .function_call(
+                "withdraw".to_string(),
+                near_sdk::serde_json::json!({ "amount": U128(owed) })
+                    .to_string()
+                    .into_bytes(),
+                NearToken::from_yoctonear(0),
+                GAS_POOL_WITHDRAW,
+            )
+            .then(
+                Self::ext(env::current_account_id())
+                    .with_static_gas(GAS_CB_SMALL)
+                    .on_near_pulled(account, U128(owed), U128(0)),
+            )
+    }
+
+    pub fn get_pending(&self, account_id: AccountId) -> U128 {
+        U128(self.pending_payouts.get(&account_id).copied().unwrap_or(0))
     }
 }
 
@@ -303,13 +340,20 @@ impl Contract {
         self.in_flight -= 1;
     }
 
+    /// stNEAR shares paid out for `amount` of principal (already debited by `begin_withdraw`).
+    ///
+    /// Normally `amount` worth at the live price. Liquid staking pools can mint slightly fewer
+    /// shares on deposit than their quoted price implies (Meta Pool keeps a ~0.06% spread), and a
+    /// slashing event would do the same at scale, so the principal-backing shares can be worth a
+    /// little less than total principal. Paying `min(at price, pro-rata share of the backing)`
+    /// keeps the vault solvent for every withdrawer, never touches the treasury, and can never
+    /// fail inside a callback.
     fn shares_for_withdraw(&mut self, amount: u128, price: u128) -> u128 {
         self.st_near_price = price;
-        let shares = shares_from_near(amount, price);
-        require!(
-            shares <= self.total_shares - self.treasury_shares,
-            "vault cannot cover principal (staking pool slashed?)"
-        );
+        let backing = self.total_shares.saturating_sub(self.treasury_shares);
+        let principal_before = self.total_principal + amount;
+        let pro_rata = mul_div(backing, amount, principal_before.max(1));
+        let shares = shares_from_near(amount, price).min(pro_rata);
         self.total_shares -= shares;
         shares
     }

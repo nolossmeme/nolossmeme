@@ -14,8 +14,8 @@ const Env = z.object({
   NEARDATA_URL: z.url().optional(),
   DATABASE_URL: z.string().default("file:./data/nolossmeme.db"),
   DATABASE_AUTH_TOKEN: z.string().optional(),
-  /** First block to index. Defaults to a height just before `meme.nolossmeme.testnet` was deployed (2026-11-09, block 276927131). */
-  START_BLOCK: z.coerce.number().int().positive().default(276_927_000),
+  /** First block to index. Defaults to a height just before `streak.nolossmeme.testnet` was deployed (2026-11-09, block 276929705). */
+  START_BLOCK: z.coerce.number().int().positive().default(276_929_600),
   SCAN_CONCURRENCY: z.coerce.number().int().min(1).max(16).default(2),
   /** Pre-filter blocks with `EXPERIMENTAL_changes_in_block` (cheap on the RPC) before fetching them from the archive. */
   SPARSE_SCAN: z.coerce.boolean().default(true),

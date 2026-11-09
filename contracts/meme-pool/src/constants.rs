@@ -17,6 +17,9 @@ pub const STORAGE_COST: NearToken = NearToken::from_millinear(5);
 pub const GAS_PRICE_VIEW: Gas = Gas::from_tgas(10);
 pub const GAS_STAKE: Gas = Gas::from_tgas(70);
 pub const GAS_FT_TRANSFER: Gas = Gas::from_tgas(25);
+pub const GAS_STORAGE_DEPOSIT: Gas = Gas::from_tgas(10);
+/// Meta Pool's `storage_balance_bounds` (same on testnet and mainnet): registering a receiver.
+pub const STAKING_POOL_STORAGE: NearToken = NearToken::from_micronear(1_250);
 pub const GAS_LIQUID_UNSTAKE: Gas = Gas::from_tgas(60);
 pub const GAS_POOL_WITHDRAW: Gas = Gas::from_tgas(30);
 pub const GAS_CB_SMALL: Gas = Gas::from_tgas(15);

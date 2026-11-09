@@ -24,6 +24,7 @@ const KINDS = new Set<IndexedEvent["kind"]>([
   "draw",
   "draw_aborted",
   "redeem",
+  "fund",
   "ft_mint",
   "ft_burn",
   "ft_transfer",

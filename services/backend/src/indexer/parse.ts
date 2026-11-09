@@ -108,6 +108,7 @@ export function parseBlock(block: LakeBlock, watch: Watch): IndexedEvent[] {
               case "withdraw":
               case "withdraw_near":
               case "redeem":
+              case "fund":
                 if (isPool)
                   push(ev.event, str("account_id"), str("amount"), {
                     shares: str("shares"),

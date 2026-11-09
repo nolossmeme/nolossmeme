@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   bpsToPercent,
+  plural,
   formatDuration,
   formatMeme,
   formatNear,
@@ -33,6 +34,8 @@ describe("parse/format", () => {
   it("formats helpers", () => {
     expect(bpsToPercent(7000)).toBe("70%");
     expect(bpsToPercent(1250)).toBe("12.5%");
+    expect(plural(1, "depositor")).toBe("1 depositor");
+    expect(plural(3, "draw")).toBe("3 draws");
     expect(formatDuration(3600)).toBe("1h");
     expect(formatDuration(86400)).toBe("1d");
     expect(formatDuration(90)).toBe("90s");

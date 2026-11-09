@@ -1,4 +1,4 @@
-# nolossmeme.fun: landing at / and the dApp at /app -> site container on 127.0.0.1:3181.
+# nolossmeme.fun: the landing -> landing container on 127.0.0.1:3181 (the dApp lives on app.nolossmeme.fun).
 # Certificates: user certbot in /home/cuyvps/le (renewed by the existing cron, reload hook).
 server {
     listen 80;
@@ -25,6 +25,10 @@ server {
     add_header Strict-Transport-Security "max-age=31536000" always;
     add_header X-Content-Type-Options nosniff always;
     add_header Referrer-Policy strict-origin-when-cross-origin always;
+    # The dApp moved to its own host; keep old links working.
+    location ~ ^/app(/.*)?$ {
+        return 301 https://app.nolossmeme.fun$1;
+    }
     location / {
         proxy_pass http://127.0.0.1:3181;
         proxy_http_version 1.1;

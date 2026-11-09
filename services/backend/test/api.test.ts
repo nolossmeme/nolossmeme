@@ -40,4 +40,18 @@ describe("API", () => {
     });
     expect(cors.headers.get("access-control-allow-origin")).toBe("*");
   });
+
+  it("allows a list of origins", async () => {
+    const store = new Store(await openDb(":memory:"));
+    const app = createApp({
+      store,
+      corsOrigin: "https://app.nolossmeme.fun, https://nolossmeme.fun",
+      head: () => null,
+      startedAt: Date.now(),
+    });
+    const ok = await app.request("/health", { headers: { Origin: "https://app.nolossmeme.fun" } });
+    expect(ok.headers.get("access-control-allow-origin")).toBe("https://app.nolossmeme.fun");
+    const no = await app.request("/health", { headers: { Origin: "https://evil.example" } });
+    expect(no.headers.get("access-control-allow-origin")).toBeNull();
+  });
 });

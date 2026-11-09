@@ -27,6 +27,7 @@ import { FloorChart } from "../components/FloorChart";
 import { Leaderboard } from "../components/Leaderboard";
 import { MemeIcon } from "../components/MemeIcon";
 import { SeriesChart } from "../components/SeriesChart";
+import { CommunityStreak } from "../components/CommunityStreak";
 import { StatTile } from "../components/StatTile";
 import { useAccountActivity, usePoolActivity, usePoolSeries } from "../hooks/useIndexer";
 import { useMeme } from "../hooks/useMemes";
@@ -123,6 +124,8 @@ export function MemePage() {
           />
         </section>
       )}
+
+      {state && <CommunityStreak state={state} />}
 
       <section className="grid lg:grid-cols-[1fr_1.4fr] gap-6">
         <PositionCard

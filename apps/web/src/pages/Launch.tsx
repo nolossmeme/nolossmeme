@@ -47,6 +47,7 @@ export function LaunchPage() {
     streakStepPct: "10",
     maxStreakPct: "50",
     minDeposit: "1",
+    checkinTarget: "3",
   });
   const [sim, setSim] = useState({ tvl: "1000", apy: "9", checkin: "50", depositors: "50" });
   const set = (k: keyof typeof form) => (v: string | number) => setForm((f) => ({ ...f, [k]: v }));
@@ -61,6 +62,7 @@ export function LaunchPage() {
         streak_step_bps: Math.round(Number(form.streakStepPct) * 100),
         max_streak_bonus_bps: Math.round(Number(form.maxStreakPct) * 100),
         min_deposit: parseNear(form.minDeposit || "0").toString(),
+        checkin_target: Math.max(1, Math.floor(Number(form.checkinTarget) || 1)),
       };
     } catch {
       return null;
@@ -236,6 +238,13 @@ export function LaunchPage() {
             value={form.minDeposit}
             onChange={set("minDeposit")}
             hint="Meta Pool rejects stakes under 1 Ⓝ"
+          />
+          <Field
+            id="target"
+            label="Community check-in target"
+            value={form.checkinTarget}
+            onChange={set("checkinTarget")}
+            hint="Accounts that must check in each epoch; miss it and the community share burns"
           />
         </div>
 

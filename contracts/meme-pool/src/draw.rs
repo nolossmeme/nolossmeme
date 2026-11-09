@@ -58,10 +58,25 @@ impl Contract {
         let seed = self.epoch_seed(total_weight);
         let emission = emission_for(&self.params, self.epoch_index);
 
-        let (winner, jackpot, each, minted) = if total_weight > 0 && emission > 0 {
-            self.mint_epoch(&tickets, total_weight, checkins, emission, &seed)
+        let target_hit = checkins >= self.checkin_target();
+        self.community_streak = if target_hit {
+            self.community_streak + 1
         } else {
-            (None, 0, 0, 0)
+            0
+        };
+        self.best_streak = self.best_streak.max(self.community_streak);
+
+        let (winner, jackpot, each, minted, burned) = if total_weight > 0 && emission > 0 {
+            self.mint_epoch(
+                &tickets,
+                total_weight,
+                checkins,
+                target_hit,
+                emission,
+                &seed,
+            )
+        } else {
+            (None, 0, 0, 0, 0)
         };
 
         let epoch = self.epoch_index;
@@ -80,6 +95,9 @@ impl Contract {
             jackpot: U128(jackpot),
             checkin_reward_each: U128(each),
             minted: U128(minted),
+            target_hit,
+            burned: U128(burned),
+            community_streak: self.community_streak,
             supply_after: U128(self.token.total_supply),
             floor_after: U128(self.floor_price()),
             seed: hex(&seed),
@@ -148,15 +166,20 @@ impl Contract {
             .map(|t| t.account.clone())
     }
 
-    /// Returns (winner, jackpot, reward per check-in, total minted).
+    pub(crate) fn checkin_target(&self) -> u32 {
+        self.params.checkin_target.max(1)
+    }
+
+    /// Returns (winner, jackpot, reward per check-in, total minted, community share burned).
     fn mint_epoch(
         &mut self,
         tickets: &[Ticket],
         total_weight: u128,
         checkins: u32,
+        target_hit: bool,
         emission: u128,
         seed: &[u8],
-    ) -> (Option<AccountId>, u128, u128, u128) {
+    ) -> (Option<AccountId>, u128, u128, u128, u128) {
         let winner = Self::pick_winner(tickets, total_weight, seed);
         let jackpot = mul_div(emission, u128::from(self.params.jackpot_bps), BPS);
         let mut minted = 0u128;
@@ -168,19 +191,19 @@ impl Contract {
                 self.depositors.insert(w.clone(), d);
             }
         }
-        // If nobody checked in, the community share is simply never minted.
-        let each = if checkins > 0 {
-            (emission - jackpot) / u128::from(checkins)
-        } else {
-            0
-        };
+        // A missed target burns the community share: it is never minted.
+        let community = emission - jackpot;
+        if !target_hit {
+            return (winner, jackpot, 0, minted, community);
+        }
+        let each = community / u128::from(checkins);
         if each > 0 {
             for t in tickets.iter().filter(|t| t.checked_in) {
                 self.mint(&t.account, each, "check-in");
                 minted += each;
             }
         }
-        (winner, jackpot, each, minted)
+        (winner, jackpot, each, minted, 0)
     }
 
     /// Advance to the next epoch, keeping the schedule aligned to launch time.

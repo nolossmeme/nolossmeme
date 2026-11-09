@@ -1,5 +1,6 @@
 //! Unit tests run the contract in-process with `testing_env!`. Cross-contract callbacks
 //! are invoked directly with the result Meta Pool would have returned.
+mod community;
 mod draw;
 mod events;
 mod fund;
@@ -48,6 +49,7 @@ pub fn params() -> Params {
         streak_step_bps: 1_000,
         max_streak_bonus_bps: 5_000,
         min_deposit: U128(ONE_NEAR / 10),
+        checkin_target: 0,
     }
 }
 

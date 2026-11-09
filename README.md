@@ -40,8 +40,11 @@ flowchart LR
 1. **Deposit** NEAR. The pool stakes it with Meta Pool. Your principal is recorded at face value and is withdrawable at any time as stNEAR (no fee) or as NEAR (Meta Pool liquid unstake).
 2. **Tickets** accrue as NEAR-seconds: a deposit made just before a draw earns almost nothing. A once-per-epoch **check-in** builds a streak that multiplies your weight (capped).
 3. **Draw** (permissionless, once the epoch ends): the staking yield since the last draw is swept into the treasury; a fixed, halving emission of MEME is minted. `jackpot_bps` of it goes to one weighted-random depositor, the rest is split equally among everyone who checked in. No check-ins, no community mint.
-4. **Floor**: `floor = treasury / supply`. Burn MEME any time (`redeem`) for that share, paid in stNEAR. The treasury only ever receives yield, so the floor never reaches zero and a "rug" is impossible: if everyone leaves, every depositor has their NEAR back and every holder still has a backed token.
+4. **Floor**: `floor = treasury / supply`. Burn MEME any time (`redeem`) for that share, paid in stNEAR. The treasury only ever receives yield and sponsor funding, never principal, so the floor never reaches zero and a "rug" is impossible: if everyone leaves, every depositor has their NEAR back and every holder still has a backed token.
 5. **No admin.** All parameters are fixed in `new` and public via `get_params`. There is no owner, no upgrade key, no pause.
+6. **Sponsors.** `fund_treasury` stakes NEAR straight into the treasury: it is never principal and cannot be withdrawn, it only raises the floor. Creators can seed a launch, partners can top up the pot.
+
+> **Testnet note.** Testnet validators pay no staking rewards (the stNEAR price of `meta-v2.pool.testnet` has not moved since 4 Nov 2026), so on testnet a backend job stands in for the yield: every 12 h `sponsor.nolossmeme.testnet` calls `fund_treasury` with 1 Ⓝ on each pool. Every subsidy is public (`fund` events, `total_funded` in `get_state`) and the app shows it as "from sponsors". On mainnet the treasury is real staking yield plus whatever sponsors add.
 
 <p align="center"><img src="docs/projection.png" alt="60-day simulation" width="800"></p>
 

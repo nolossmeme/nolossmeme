@@ -5,6 +5,7 @@ mod events;
 mod fund;
 mod redeem;
 mod regression;
+mod solvency;
 mod tickets;
 mod vault;
 
@@ -31,6 +32,10 @@ pub fn alice() -> AccountId {
 }
 pub fn bob() -> AccountId {
     "bob.testnet".parse().unwrap()
+}
+
+pub fn carol() -> AccountId {
+    "carol.testnet".parse().unwrap()
 }
 
 pub fn params() -> Params {

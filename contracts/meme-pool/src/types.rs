@@ -9,6 +9,7 @@ pub(crate) enum StorageKey {
     Metadata,
     Depositors,
     Draws,
+    Pending,
 }
 
 /// Immutable launch parameters. Set once in `new`, readable by anyone via `get_params`.

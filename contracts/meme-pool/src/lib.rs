@@ -32,7 +32,7 @@ mod tests;
 
 use near_contract_standards::fungible_token::FungibleToken;
 use near_contract_standards::fungible_token::metadata::{FT_METADATA_SPEC, FungibleTokenMetadata};
-use near_sdk::store::{IterableMap, LazyOption, Vector};
+use near_sdk::store::{IterableMap, LazyOption, LookupMap, Vector};
 use near_sdk::{AccountId, PanicOnDefault, env, near, require};
 
 pub use constants::*;
@@ -65,6 +65,8 @@ pub struct Contract {
     draw_in_progress: bool,
     /// Withdraw / redeem promise chains in flight; draws wait for zero.
     in_flight: u32,
+    /// NEAR owed to accounts whose `withdraw_near` payout could not be pulled; see `claim_pending`.
+    pending_payouts: LookupMap<AccountId, u128>,
 }
 
 #[near]
@@ -113,6 +115,7 @@ impl Contract {
             draws: Vector::new(StorageKey::Draws),
             draw_in_progress: false,
             in_flight: 0,
+            pending_payouts: LookupMap::new(StorageKey::Pending),
         }
     }
 }

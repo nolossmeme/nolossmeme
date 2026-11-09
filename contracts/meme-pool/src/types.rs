@@ -86,6 +86,8 @@ pub struct PoolState {
     pub total_shares: U128,
     pub treasury_shares: U128,
     pub treasury_near: U128,
+    /// NEAR added by sponsors through `fund_treasury` (part of the treasury, never principal).
+    pub total_funded: U128,
     pub st_near_price: U128,
     pub total_supply: U128,
     /// yocto NEAR per whole MEME.

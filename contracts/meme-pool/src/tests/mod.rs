@@ -2,6 +2,7 @@
 //! are invoked directly with the result Meta Pool would have returned.
 mod draw;
 mod events;
+mod fund;
 mod redeem;
 mod regression;
 mod tickets;

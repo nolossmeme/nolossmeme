@@ -21,6 +21,7 @@ impl Contract {
             total_shares: U128(self.total_shares),
             treasury_shares: U128(self.treasury_shares),
             treasury_near: U128(near_from_shares(self.treasury_shares, self.st_near_price)),
+            total_funded: U128(self.total_funded),
             st_near_price: U128(self.st_near_price),
             total_supply: U128(self.token.total_supply),
             floor_price: U128(self.floor_price()),

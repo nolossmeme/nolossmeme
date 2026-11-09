@@ -21,12 +21,20 @@ export function parseMeme(meme: string | number): bigint {
 
 export function parseUnits(value: string, decimals: number): bigint {
   const trimmed = value.trim();
-  if (!/^\d*(\.\d*)?$/.test(trimmed) || trimmed === "" || trimmed === ".") {
+  const parts = trimmed.split(".");
+  const [whole = "", frac = ""] = parts;
+  const digits = /^\d*$/;
+  if (parts.length > 2 || !digits.test(whole) || !digits.test(frac) || whole + frac === "") {
     throw new Error(`invalid number: "${value}"`);
   }
-  const [whole = "0", frac = ""] = trimmed.split(".");
   if (frac.length > decimals) throw new Error(`more than ${decimals} decimals: "${value}"`);
   return BigInt(whole || "0") * 10n ** BigInt(decimals) + BigInt(frac.padEnd(decimals, "0") || "0");
+}
+
+function trimTrailingZeros(digits: string): string {
+  let end = digits.length;
+  while (end > 0 && digits[end - 1] === "0") end -= 1;
+  return digits.slice(0, end);
 }
 
 /** 1500000000000000000000000n -> "1.5" (trailing zeros trimmed, max `precision` decimals). */
@@ -37,8 +45,10 @@ export function formatUnits(value: string | bigint, decimals: number, precision 
   const base = 10n ** BigInt(decimals);
   const whole = abs / base;
   let frac = (abs % base).toString().padStart(decimals, "0").slice(0, precision);
-  frac = frac.replace(/0+$/, "");
-  return `${negative ? "-" : ""}${whole.toString()}${frac ? `.${frac}` : ""}`;
+  frac = trimTrailingZeros(frac);
+  const sign = negative ? "-" : "";
+  const fraction = frac ? "." + frac : "";
+  return sign + whole.toString() + fraction;
 }
 
 export function formatNear(yocto: string | bigint, precision = 4): string {

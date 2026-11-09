@@ -1,4 +1,4 @@
-import { formatNear, type MemeInfo, type PoolState } from "@nolossmeme/sdk";
+import { formatNear, plural, type MemeInfo, type PoolState } from "@nolossmeme/sdk";
 
 export function StatsStrip({
   memes,
@@ -22,7 +22,7 @@ export function StatsStrip({
     {
       k: "Live memes",
       v: memes.length.toString(),
-      hint: `${depositors} depositors`,
+      hint: plural(depositors, "depositor"),
       accent: false,
     },
     { k: "Draws settled", v: draws.toString(), hint: "on-chain, permissionless", accent: false },

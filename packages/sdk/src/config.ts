@@ -30,6 +30,7 @@ export const NETWORKS: Record<NetworkId, NetworkConfig> = {
 /** Gas budgets (TGas) matching the contracts' promise chains. */
 export const GAS = {
   deposit: 150n,
+  fundTreasury: 150n,
   withdraw: 120n,
   withdrawNear: 200n,
   checkIn: 30n,

@@ -25,6 +25,12 @@ describe("actions", () => {
     });
   });
 
+  it("fundTreasury attaches the sponsored amount", () => {
+    const tx = actions.fundTreasury(POOL, parseNear("2"));
+    expect(tx.actions[0]!.params.methodName).toBe("fund_treasury");
+    expect(tx.actions[0]!.params.deposit).toBe(parseNear("2").toString());
+  });
+
   it("redeem attaches exactly one yocto", () => {
     expect(actions.redeem(POOL, 10n).actions[0]!.params.deposit).toBe("1");
   });

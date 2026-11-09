@@ -26,6 +26,8 @@ export interface PoolState {
   total_shares: string;
   treasury_shares: string;
   treasury_near: string;
+  /** NEAR sponsors added through `fund_treasury` (absent on pools deployed before it existed). */
+  total_funded?: string;
   st_near_price: string;
   total_supply: string;
   floor_price: string;

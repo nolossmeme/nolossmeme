@@ -13,6 +13,8 @@ export interface PoolParams {
   streak_step_bps: number;
   max_streak_bonus_bps: number;
   min_deposit: string;
+  /** Check-ins the community needs per epoch; missing it burns the community share. */
+  checkin_target?: number;
 }
 
 /** Parameters a creator chooses at launch (`factory::PoolParams`). */
@@ -37,6 +39,10 @@ export interface PoolState {
   emission_now: string;
   depositors: number;
   checkins_this_epoch: number;
+  /** Community ritual (absent on pools that predate it). `checkin_target` is at least 1. */
+  checkin_target?: number;
+  community_streak?: number;
+  best_streak?: number;
   draws: number;
   draw_in_progress: boolean;
   in_flight: number;
@@ -66,6 +72,10 @@ export interface Draw {
   jackpot: string;
   checkin_reward_each: string;
   minted: string;
+  target_hit?: boolean;
+  /** Community share never minted because the target was missed. */
+  burned?: string;
+  community_streak?: number;
   supply_after: string;
   floor_after: string;
   seed: string;

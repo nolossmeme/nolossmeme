@@ -33,6 +33,10 @@ pub struct Params {
     pub max_streak_bonus_bps: u16,
     /// Minimum NEAR per deposit (yocto).
     pub min_deposit: U128,
+    /// Check-ins the community needs per epoch for its share of the emission (0 means 1).
+    /// Miss it and that share is never minted (burned) and the community streak resets.
+    #[serde(default)]
+    pub checkin_target: u32,
 }
 
 /// Per-account vault state.
@@ -70,6 +74,12 @@ pub struct Draw {
     pub jackpot: U128,
     pub checkin_reward_each: U128,
     pub minted: U128,
+    /// Whether `checkins` reached `checkin_target`.
+    pub target_hit: bool,
+    /// Community share withheld because the target was missed.
+    pub burned: U128,
+    /// Consecutive epochs that hit the target, after this draw.
+    pub community_streak: u32,
     pub supply_after: U128,
     /// yocto NEAR per whole MEME after this draw.
     pub floor_after: U128,
@@ -99,6 +109,12 @@ pub struct PoolState {
     pub emission_now: U128,
     pub depositors: u64,
     pub checkins_this_epoch: u32,
+    /// Check-ins needed this epoch (`checkin_target`, at least 1).
+    pub checkin_target: u32,
+    /// Consecutive epochs the community hit its target.
+    pub community_streak: u32,
+    /// Longest community streak ever: the pool's high score.
+    pub best_streak: u32,
     pub draws: u64,
     pub draw_in_progress: bool,
     pub in_flight: u32,

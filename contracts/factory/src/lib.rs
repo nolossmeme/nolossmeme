@@ -93,6 +93,7 @@ mod tests {
             streak_step_bps: 1_000,
             max_streak_bonus_bps: 5_000,
             min_deposit: U128(100_000_000_000_000_000_000_000),
+            checkin_target: 3,
         }
     }
 

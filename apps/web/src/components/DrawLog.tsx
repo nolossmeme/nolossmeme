@@ -52,9 +52,13 @@ export function DrawLog({ draws, symbol }: { draws: Draw[]; symbol: string }) {
               </td>
               <td className="py-2 pr-3">
                 {d.checkins}
-                {d.checkins > 0 && (
+                {d.checkins > 0 && d.target_hit !== false && (
                   <span className="text-muted"> × {formatMeme(d.checkin_reward_each, 1)}</span>
                 )}
+                {d.target_hit === false && d.burned && BigInt(d.burned) > 0n && (
+                  <span className="text-red"> 🔥 {formatMeme(d.burned, 0)} burned</span>
+                )}
+                {d.target_hit && <span className="text-muted"> · streak {d.community_streak}</span>}
               </td>
               <td className="py-2 pr-3">{formatNear(d.floor_after, 6)} Ⓝ</td>
             </tr>

@@ -61,6 +61,7 @@ impl Contract {
                 "streak_step_bps": params.streak_step_bps,
                 "max_streak_bonus_bps": params.max_streak_bonus_bps,
                 "min_deposit": params.min_deposit,
+                "checkin_target": params.checkin_target,
             }
         });
         Promise::new(account_id)

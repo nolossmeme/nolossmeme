@@ -64,6 +64,7 @@ mod tests {
             streak_step_bps: 1_000,
             max_streak_bonus_bps: 10_000,
             min_deposit: U128(ONE_NEAR),
+            checkin_target: 0,
         }
     }
 

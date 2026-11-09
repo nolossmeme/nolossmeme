@@ -16,6 +16,10 @@ const steps = [
     "A fixed, halving emission of the meme token is minted: most of it to one weighted-random winner, the rest split among everyone who checked in.",
   ],
   [
+    "Hit the community target",
+    "Each pool sets how many accounts must check in per epoch. Hit it and the community share mints and the community streak grows. Miss it and that share burns and the streak resets. The longest streak is the pool's high score.",
+  ],
+  [
     "Floor, not zero",
     "Any token can be burned for its share of the treasury. Since the treasury only grows from yield, the floor can never reach zero.",
   ],
@@ -30,6 +34,7 @@ const limits = [
   "Randomness comes from the block producer's seed mixed with epoch data. A validator could predict a draw it produces. A commit-reveal or VRF is the upgrade path.",
   "The draw settles every depositor in one call, which comfortably handles hundreds of accounts, not tens of thousands.",
   "Withdrawing straight to NEAR depends on Meta Pool's liquidity pool and pays its swap fee. Withdrawing as stNEAR always works and is fee-free.",
+  "The community target counts accounts, so one person with many small deposits could hit it alone. It costs a locked deposit per account and only buys the streak, since the community share is split across the same accounts.",
   "Pools have no admin. Parameters are fixed at launch. Bugs cannot be patched in place; a new pool would have to be launched.",
 ];
 

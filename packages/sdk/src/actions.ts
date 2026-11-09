@@ -29,6 +29,11 @@ export function deposit(pool: string, yocto: bigint, registered: boolean): Contr
   return call(pool, "deposit", {}, GAS.deposit, attached);
 }
 
+/** Sponsor a pool: stake NEAR straight into its treasury (not withdrawable, raises the floor). */
+export function fundTreasury(pool: string, yocto: bigint): ContractCall {
+  return call(pool, "fund_treasury", {}, GAS.fundTreasury, yocto);
+}
+
 /** Withdraw principal as stNEAR. Omit `yocto` to withdraw everything. */
 export function withdraw(pool: string, yocto?: bigint): ContractCall {
   return call(

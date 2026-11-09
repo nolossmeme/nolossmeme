@@ -2,7 +2,7 @@
 # Deploy a fresh factory to testnet and launch a first pool.
 #
 #   contracts/scripts/deploy-testnet.sh <factory-account.testnet> [slug] [symbol] [name] [icon]
-#   e.g. contracts/scripts/deploy-testnet.sh meme.nolossmeme.testnet dogn DOGN "Doge of NEAR" 🐶
+#   e.g. contracts/scripts/deploy-testnet.sh streak.nolossmeme.testnet dogn DOGN "Doge of NEAR" 🐶
 #
 # Requires cargo-near and near-cli-rs, and a full-access key for the factory account in
 # the legacy keychain (~/.near-credentials). The pool code is stored once and frozen.
@@ -15,6 +15,8 @@ NAME="${4:-Doge of NEAR}"
 ICON="${5:-🐶}"
 # Must cover get_launch_cost (≈ 3.8 NEAR); it all funds the new pool account.
 LAUNCH_DEPOSIT="${LAUNCH_DEPOSIT:-4 NEAR}"
+# Check-ins the community needs per epoch (miss it and the community share burns).
+CHECKIN_TARGET="${CHECKIN_TARGET:-2}"
 STAKING_POOL="${STAKING_POOL:-meta-v2.pool.testnet}"
 NET="network-config testnet sign-with-legacy-keychain send"
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
@@ -44,7 +46,7 @@ near contract call-function as-transaction "$FACTORY" create_meme json-args "{
   \"slug\":\"$SLUG\",\"name\":\"$NAME\",\"symbol\":\"$SYMBOL\",\"icon\":\"$ICON\",
   \"params\":{\"epoch_length_ns\":\"3600000000000\",\"initial_emission\":\"1000000000000000000000\",
   \"halving_every\":168,\"jackpot_bps\":7000,\"streak_step_bps\":1000,\"max_streak_bonus_bps\":5000,
-  \"min_deposit\":\"1000000000000000000000000\"}}" \
+  \"min_deposit\":\"1000000000000000000000000\",\"checkin_target\":$CHECKIN_TARGET}}" \
   prepaid-gas '300 Tgas' attached-deposit "$LAUNCH_DEPOSIT" sign-as "$FACTORY" $NET
 
 echo "==> done: factory=$FACTORY pool=$SLUG.$FACTORY"

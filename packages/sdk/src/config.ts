@@ -14,7 +14,7 @@ export const NETWORKS: Record<NetworkId, NetworkConfig> = {
     networkId: "testnet",
     rpcUrl: "https://test.rpc.fastnear.com",
     explorerUrl: "https://testnet.nearblocks.io",
-    factory: "pad.nolossmeme.testnet",
+    factory: "meme.nolossmeme.testnet",
     metaPool: "meta-v2.pool.testnet",
   },
   mainnet: {

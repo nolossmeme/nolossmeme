@@ -59,14 +59,14 @@ fn regression_failed_final_payout_is_parked_not_stuck() {
     let _ = c.withdraw_near(None, U128(0));
     assert_eq!(c.get_state().in_flight, 1);
     ctx(pool(), 0, 1);
-    // the pull from the staking pool fails
-    c.on_near_pulled(alice(), U128(ONE_NEAR), U128(0), Err(PromiseError::Failed));
+    // the NEAR transfer to alice fails
+    c.on_near_sent(alice(), U128(ONE_NEAR), U128(0), Err(PromiseError::Failed));
     assert_eq!(c.get_state().in_flight, 0, "draws are not blocked");
     assert_eq!(c.get_pending(alice()).0, ONE_NEAR);
     ctx(alice(), 0, 2);
     let _ = c.claim_pending();
     assert_eq!(c.get_pending(alice()).0, 0);
     ctx(pool(), 0, 2);
-    c.on_near_pulled(alice(), U128(ONE_NEAR), U128(0), Ok(()));
+    c.on_near_sent(alice(), U128(ONE_NEAR), U128(0), Ok(()));
     assert_eq!(c.get_state().in_flight, 0);
 }

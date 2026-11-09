@@ -157,9 +157,12 @@ impl Contract {
             "min_expected_near not satisfied"
         );
         acc.shares -= st_near_to_burn.0;
-        acc.available += near;
-        self.accounts.insert(caller, acc);
+        self.accounts.insert(caller.clone(), acc);
         self.total_shares -= st_near_to_burn.0;
+        // Like Meta Pool: the NEAR goes straight to the caller, not to its available balance.
+        Promise::new(caller)
+            .transfer(NearToken::from_yoctonear(near))
+            .detach();
         LiquidUnstakeResult {
             near: U128(near),
             fee: U128(fee),

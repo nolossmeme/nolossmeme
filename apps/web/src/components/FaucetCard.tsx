@@ -9,6 +9,11 @@ import { Turnstile } from "./Turnstile";
 
 import { TURNSTILE_SITE_KEY as SITE_KEY, faucetEnabled } from "../lib/faucet";
 
+function claimLabel(accountId: string | undefined, busy: boolean): string {
+  if (!accountId) return "Connect a wallet first";
+  return busy ? "Sending…" : "Claim testnet NEAR";
+}
+
 /** "Need testnet NEAR?" — one grant per account per day from the backend faucet, gated by Turnstile. */
 export function FaucetCard({ accountId }: { accountId: string | undefined }) {
   const toast = useToast();
@@ -96,7 +101,7 @@ export function FaucetCard({ accountId }: { accountId: string | undefined }) {
             disabled={!accountId || !token || busy}
             onClick={() => void claim()}
           >
-            {!accountId ? "Connect a wallet first" : busy ? "Sending…" : "Claim testnet NEAR"}
+            {claimLabel(accountId, busy)}
           </button>
         </>
       )}

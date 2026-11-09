@@ -22,6 +22,15 @@ const EPOCHS = [
   { label: "1 week", seconds: 604_800 },
 ];
 
+function slugPreview(slug: string): string {
+  return slug ? `${slug}.${network.factory}` : " ";
+}
+
+function launchLabel(pending: boolean, signedIn: boolean): string {
+  if (pending) return "Confirm in wallet…";
+  return signedIn ? "Launch" : "Connect wallet";
+}
+
 export function LaunchPage() {
   const tx = useTx();
   const navigate = useNavigate();
@@ -130,13 +139,7 @@ export function LaunchPage() {
               placeholder="pepn"
             />
             <p className="text-xs mt-1 text-muted">
-              {slugError ? (
-                <span className="text-red">{slugError}</span>
-              ) : form.slug ? (
-                `${form.slug}.${network.factory}`
-              ) : (
-                " "
-              )}
+              {slugError ? <span className="text-red">{slugError}</span> : slugPreview(form.slug)}
             </p>
           </div>
           <div>
@@ -241,7 +244,7 @@ export function LaunchPage() {
           <span className="font-mono">{cost !== undefined ? `${formatNear(cost, 2)} Ⓝ` : "…"}</span>
         </div>
         <button className="btn-primary" type="submit" disabled={!ready || tx.pending}>
-          {tx.pending ? "Confirm in wallet…" : tx.signedAccountId ? "Launch" : "Connect wallet"}
+          {launchLabel(tx.pending, Boolean(tx.signedAccountId))}
         </button>
       </form>
 

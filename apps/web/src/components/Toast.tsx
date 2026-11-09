@@ -1,11 +1,19 @@
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { ToastContext, type ToastItem } from "../hooks/useToast";
 
+const BORDER: Record<ToastItem["kind"], string> = {
+  success: "border-l-lime",
+  error: "border-l-red",
+  info: "border-l-amber",
+};
+
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([]);
+  const nextId = useRef(0);
   const show = useCallback((t: Omit<ToastItem, "id">) => {
-    const id = Date.now() + Math.random();
+    nextId.current += 1;
+    const id = nextId.current;
     setItems((xs) => [...xs, { ...t, id }]);
     setTimeout(() => setItems((xs) => xs.filter((x) => x.id !== id)), 6_000);
   }, []);
@@ -21,13 +29,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {items.map((t) => (
           <div
             key={t.id}
-            className={`card px-4 py-3 text-sm shadow-lg border-l-4 ${
-              t.kind === "success"
-                ? "border-l-lime"
-                : t.kind === "error"
-                  ? "border-l-red"
-                  : "border-l-amber"
-            }`}
+            className={`card px-4 py-3 text-sm shadow-lg border-l-4 ${BORDER[t.kind]}`}
           >
             {t.text}
           </div>

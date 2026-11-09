@@ -39,10 +39,11 @@ flowchart LR
 
 1. **Deposit** NEAR. The pool stakes it with Meta Pool. Your principal is recorded at face value and is withdrawable at any time as stNEAR (no fee) or as NEAR (Meta Pool liquid unstake).
 2. **Tickets** accrue as NEAR-seconds: a deposit made just before a draw earns almost nothing. A once-per-epoch **check-in** builds a streak that multiplies your weight (capped).
-3. **Draw** (permissionless, once the epoch ends): the staking yield since the last draw is swept into the treasury; a fixed, halving emission of MEME is minted. `jackpot_bps` of it goes to one weighted-random depositor, the rest is split equally among everyone who checked in. No check-ins, no community mint.
+3. **Draw** (permissionless, once the epoch ends): the staking yield since the last draw is swept into the treasury; a fixed, halving emission of MEME is minted. `jackpot_bps` of it goes to one weighted-random depositor, the rest is split equally among everyone who checked in, **if the community hit its check-in target** (below).
 4. **Floor**: `floor = treasury / supply`. Burn MEME any time (`redeem`) for that share, paid in stNEAR. The treasury only ever receives yield and sponsor funding, never principal, so the floor never reaches zero and a "rug" is impossible: if everyone leaves, every depositor has their NEAR back and every holder still has a backed token.
-5. **No admin.** All parameters are fixed in `new` and public via `get_params`. There is no owner, no upgrade key, no pause.
-6. **Sponsors.** `fund_treasury` stakes NEAR straight into the treasury: it is never principal and cannot be withdrawn, it only raises the floor. Creators can seed a launch, partners can top up the pot.
+5. **Community ritual.** Each pool sets `checkin_target` at launch: how many accounts must check in per epoch. Hit it and the community share mints and the pool's **community streak** grows. Miss it and that share **burns** (it is never minted, the draw records it as `burned`) and the streak resets to 0. The longest streak is kept on-chain as `best_streak` and shown on the token page as the high score. Supply therefore tracks how alive the community is: a quiet pool mints only jackpots.
+6. **No admin.** All parameters are fixed in `new` and public via `get_params`. There is no owner, no upgrade key, no pause.
+7. **Sponsors.** `fund_treasury` stakes NEAR straight into the treasury: it is never principal and cannot be withdrawn, it only raises the floor. Creators can seed a launch, partners can top up the pot.
 
 > **Testnet note.** Testnet validators pay no staking rewards (the stNEAR price of `meta-v2.pool.testnet` has not moved since 4 Nov 2026), so on testnet a backend job stands in for the yield: every 12 h `sponsor.nolossmeme.testnet` calls `fund_treasury` with 1 Ⓝ on each pool. Every subsidy is public (`fund` events, `total_funded` in `get_state`) and the app shows it as "from sponsors". On mainnet the treasury is real staking yield plus whatever sponsors add.
 
@@ -67,7 +68,7 @@ Prerequisites: Rust (the `contracts/rust-toolchain.toml` pins 1.96), [`cargo-nea
 6. `DRY_RUN=1 pnpm --filter @nolossmeme/keeper start`
    → see the keeper list every pool and print `skip (epoch ends in Ns)` or `would draw epoch #N`.
 7. `cd tools/sim && uv run --with matplotlib --with pytest python -m pytest -q && uv run --with matplotlib python -m nolossmeme_sim.cli --out output`
-   → see **4 tests pass** and `output/projection.png` regenerated with the table printed above it.
+   → see **5 tests pass** and `output/projection.png` regenerated; the table shows MEME burned by missed check-in targets and the best community streak per scenario (`--checkin-target`, default 20).
 8. `pnpm --filter @nolossmeme/backend test && pnpm --filter @nolossmeme/backend dev`, then `curl localhost:8787/health`
    → see **10 backend tests pass** (parser on recorded testnet blocks, store, API, rate limiter), then the indexer follow the chain from the factory deploy and `/health` report its cursor; `/pools/dogn.meme.nolossmeme.testnet/activity` lists deposits, check-ins and draws. With `VITE_INDEXER_URL` set, the web app shows an activity feed and TVL/treasury/floor over time.
 9. Read the chain directly (no tooling needed):
@@ -111,7 +112,8 @@ Prerequisites: Rust (the `contracts/rust-toolchain.toml` pins 1.96), [`cargo-nea
 | `halving_every`                            | emission halves every N epochs                    | 168 (weekly)    |
 | `jackpot_bps`                              | share of emission to the single winner            | 70 %            |
 | `streak_step_bps` / `max_streak_bonus_bps` | ticket boost per consecutive check-in and its cap | +10 % / 50 %    |
-| `min_deposit`                              | smallest deposit                                  | 0.1 Ⓝ           |
+| `min_deposit`                              | smallest deposit                                  | 1 Ⓝ             |
+| `checkin_target`                           | check-ins per epoch to mint the community share   | 3               |
 
 ## Launch your own
 
@@ -119,7 +121,7 @@ Through the web app (**Launch** page) or with the CLI:
 
 ```bash
 near contract call-function as-transaction meme.nolossmeme.testnet create_meme \
-  json-args '{"slug":"pepn","name":"Pepe of NEAR","symbol":"PEPN","icon":"🐸","params":{"epoch_length_ns":"86400000000000","initial_emission":"1000000000000000000000","halving_every":30,"jackpot_bps":7000,"streak_step_bps":1000,"max_streak_bonus_bps":5000,"min_deposit":"100000000000000000000000"}}' \
+  json-args '{"slug":"pepn","name":"Pepe of NEAR","symbol":"PEPN","icon":"🐸","params":{"epoch_length_ns":"86400000000000","initial_emission":"1000000000000000000000","halving_every":30,"jackpot_bps":7000,"streak_step_bps":1000,"max_streak_bonus_bps":5000,"min_deposit":"1000000000000000000000000","checkin_target":3}}' \
   prepaid-gas '300 Tgas' attached-deposit '4 NEAR' sign-as you.testnet network-config testnet sign-with-keychain send
 ```
 
@@ -130,6 +132,7 @@ The attached NEAR funds the new account's storage (`get_launch_cost`, ≈ 3.8 �
 - **Randomness.** The draw hashes `env::random_seed()` with the epoch index and total weight. The producer of the block containing the `on_draw_price` receipt can predict it. Fine for a hackathon; a commit-reveal from the keeper or a VRF is the upgrade path.
 - **Draw cost is O(depositors).** One callback settles every depositor (270 TGas). Hundreds of accounts are fine; thousands need paged settlement or a sum tree.
 - **Sybil resistance of check-ins** is the deposit itself: a check-in only boosts weight you already have (`min_deposit` applies), and the community share is split per account, so splitting a deposit across accounts does not increase the expected jackpot and only redistributes the community share. A per-account minimum weight for the community share would tighten this.
+- **Sybil resistance of the community target** is weak by design for a demo: it counts accounts, so one person with N accounts of `min_deposit` each can hit a target of N alone. Each fake account costs 1 Ⓝ locked (refundable, it is a no-loss pool) plus 0.005 Ⓝ storage and one check-in transaction per epoch. Hitting the target that way only mints a share that is split across the same accounts, so it buys the streak, not extra MEME. Weighting the target by principal or requiring a minimum account age would tighten it.
 - **Meta Pool minimum.** `meta-v2.pool.testnet` rejects stakes under 1 Ⓝ; a smaller deposit is refunded by the pool's callback (no loss, but no deposit). Set `min_deposit` ≥ 1 Ⓝ at launch; the web app enforces it.
 - **`withdraw_near`** depends on Meta Pool's liquidity pool and pays its swap fee; `withdraw` (stNEAR) always works and is free.
 - **Slashing** of the staking pool would leave the last withdrawers short; the treasury is never used to cover principal.

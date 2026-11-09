@@ -39,6 +39,8 @@ pub struct LiquidUnstakeResult {
 pub struct Contract {
     price: u128,
     total_shares: u128,
+    /// Shares minted on deposit are this many bps fewer than the price implies (Meta Pool: ~6).
+    deposit_spread_bps: u128,
     accounts: LookupMap<AccountId, Account>,
 }
 
@@ -49,6 +51,7 @@ impl Contract {
         Self {
             price: price.0,
             total_shares: 0,
+            deposit_spread_bps: 0,
             accounts: LookupMap::new(b"a"),
         }
     }
@@ -57,6 +60,12 @@ impl Contract {
     pub fn set_price(&mut self, price: U128) {
         require!(price.0 > 0, "price must be > 0");
         self.price = price.0;
+    }
+
+    /// Test hook: mimic the real pool minting slightly fewer shares than its quoted price.
+    pub fn set_deposit_spread_bps(&mut self, bps: U128) {
+        require!(bps.0 < 10_000, "spread must be < 100%");
+        self.deposit_spread_bps = bps.0;
     }
 
     pub fn get_st_near_price(&self) -> U128 {
@@ -70,7 +79,8 @@ impl Contract {
             amount >= MIN_DEPOSIT,
             format!("minimum deposit amount is {MIN_DEPOSIT}")
         );
-        let shares = mul_div(amount, ONE_NEAR, self.price);
+        let shares =
+            mul_div(amount, ONE_NEAR, self.price) * (10_000 - self.deposit_spread_bps) / 10_000;
         let mut acc = self.account(&env::predecessor_account_id());
         acc.shares += shares;
         self.accounts.insert(env::predecessor_account_id(), acc);

@@ -357,3 +357,19 @@ describe("Rpc unknown block over HTTP 422", async () => {
     await expect(rpc.touchedAccounts(276220816)).rejects.toBeInstanceOf(UnknownBlock);
   });
 });
+
+describe("parseBlock fund events", () => {
+  it("records sponsor funding", () => {
+    const line = `EVENT_JSON:${JSON.stringify({ standard: "nolossmeme", version: "1.0.0", event: "fund", data: [{ account_id: "sponsor.testnet", amount: "1000", shares: "312" }] })}`;
+    const [e] = parseBlock(
+      synthetic([receipt(pool, "on_funded", [line], "312", pool, "z")]),
+      watch,
+    );
+    expect(e).toMatchObject({
+      kind: "fund",
+      account: "sponsor.testnet",
+      amount: "1000",
+      data: { shares: "312", fee: null },
+    });
+  });
+});

@@ -36,6 +36,11 @@ const Env = z.object({
   TURNSTILE_SECRET_KEY: z.string().optional(),
   FAUCET_AMOUNT_NEAR: z.coerce.number().positive().default(1),
   FAUCET_COOLDOWN_HOURS: z.coerce.number().positive().default(24),
+  /** Testnet yield subsidy (see jobs/sponsor.ts). Disabled unless the account and key are set. */
+  SPONSOR_ACCOUNT_ID: z.string().optional(),
+  SPONSOR_PRIVATE_KEY: z.string().optional(),
+  SPONSOR_AMOUNT_NEAR: z.coerce.number().min(1).default(1),
+  SPONSOR_INTERVAL_HOURS: z.coerce.number().min(0.25).default(12),
 });
 
 /** Free endpoints that serve `EXPERIMENTAL_changes_in_block`; rotating spreads the per-endpoint limits. */

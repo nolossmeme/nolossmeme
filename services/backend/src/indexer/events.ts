@@ -9,6 +9,7 @@ export type EventKind =
   | "draw"
   | "draw_aborted"
   | "redeem"
+  | "fund"
   | "ft_mint"
   | "ft_burn"
   | "ft_transfer";

@@ -11,6 +11,7 @@ import { Rpc } from "./indexer/rpc.js";
 import { Scanner } from "./indexer/scanner.js";
 import { startKeeperJob } from "./jobs/keeper.js";
 import { startSnapshotJob } from "./jobs/snapshots.js";
+import { startSponsorJob } from "./jobs/sponsor.js";
 import { log, setLogLevel } from "./log.js";
 
 async function main(): Promise<void> {
@@ -61,6 +62,19 @@ async function main(): Promise<void> {
           cfg.KEEPER_INTERVAL_MS,
         )
       : () => undefined;
+  const stopSponsor =
+    roles.has("jobs") &&
+    cfg.NEAR_NETWORK === "testnet" &&
+    cfg.SPONSOR_ACCOUNT_ID &&
+    cfg.SPONSOR_PRIVATE_KEY
+      ? startSponsorJob(store, client, {
+          rpcUrl: cfg.rpcUrl,
+          accountId: cfg.SPONSOR_ACCOUNT_ID,
+          privateKey: cfg.SPONSOR_PRIVATE_KEY,
+          amountYocto: BigInt(Math.round(cfg.SPONSOR_AMOUNT_NEAR * 1_000_000)) * 10n ** 18n,
+          intervalMs: cfg.SPONSOR_INTERVAL_HOURS * 3_600_000,
+        })
+      : () => undefined;
 
   const faucet =
     cfg.FAUCET_ACCOUNT_ID && cfg.FAUCET_PRIVATE_KEY && cfg.TURNSTILE_SECRET_KEY
@@ -97,6 +111,7 @@ async function main(): Promise<void> {
     scanner.stop();
     stopSnapshots();
     stopKeeper();
+    stopSponsor();
     clearInterval(headTracker);
     server?.close();
     db.close();

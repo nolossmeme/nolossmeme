@@ -21,7 +21,8 @@ function useCountdown(targetMs: number | undefined): string {
   if (s === 0) return "Due now";
   const pad = (n: number) => n.toString().padStart(2, "0");
   const d = Math.floor(s / 86_400);
-  return `${d > 0 ? `${d}d ` : ""}${pad(Math.floor((s % 86_400) / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`;
+  const days = d > 0 ? `${d}d ` : "";
+  return `${days}${pad(Math.floor((s % 86_400) / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`;
 }
 
 export function MemeCard({ meme, state }: { meme: MemeInfo; state: PoolState | undefined }) {

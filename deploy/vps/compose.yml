@@ -42,7 +42,7 @@ services:
       - backend-data:/data
     environment:
       NEAR_NETWORK: testnet
-      DATABASE_URL: file:/data/nolossmeme.db
+      DATABASE_URL: ${DATABASE_URL:-file:/data/nolossmeme.db}
       PORT: "8787"
       CORS_ORIGIN: ${CORS_ORIGIN:-https://app.nolossmeme.fun,https://nolossmeme.fun}
       LOG_LEVEL: info

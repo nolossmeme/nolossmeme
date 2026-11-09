@@ -226,28 +226,13 @@ impl Contract {
             self.abort_withdraw(&account, amount.0, Some(shares.0));
             return PromiseOrValue::Value(U128(0));
         };
-        // The NEAR now sits in our "available" balance on the staking pool. Pull it here,
-        // then forward it. Both legs move funds that are already ours, so no rollback.
+        // Meta Pool's liquid_unstake transfers the NEAR to this contract; forward it.
         self.cleanup_depositor(&account);
-        let pull = Promise::new(self.params.staking_pool.clone()).function_call(
-            "withdraw".to_string(),
-            near_sdk::serde_json::json!({ "amount": res.near })
-                .to_string()
-                .into_bytes(),
-            NearToken::from_yoctonear(0),
-            GAS_POOL_WITHDRAW,
-        );
-        PromiseOrValue::Promise(
-            pull.then(
-                Self::ext(env::current_account_id())
-                    .with_static_gas(GAS_CB_SMALL)
-                    .on_near_pulled(account, res.near, res.fee),
-            ),
-        )
+        PromiseOrValue::Promise(Self::pay_near(account, res.near, res.fee))
     }
 
     #[private]
-    pub fn on_near_pulled(
+    pub fn on_near_sent(
         &mut self,
         account: AccountId,
         near: U128,
@@ -256,47 +241,44 @@ impl Contract {
     ) -> U128 {
         self.in_flight -= 1;
         if result.is_err() {
-            // The NEAR sits in our available balance on the staking pool. Never panic here (it
-            // would roll back the in-flight counter and block draws); park it for a retry.
+            // The transfer bounced back to us. Never panic here (it would roll back the
+            // in-flight counter and block draws); park the NEAR for a retry.
             let owed = self.pending_payouts.get(&account).copied().unwrap_or(0) + near.0;
             self.pending_payouts.insert(account.clone(), owed);
             log!(
-                "staking pool withdraw failed; {} yoctoNEAR parked for claim_pending",
+                "NEAR transfer failed; {} yoctoNEAR parked for claim_pending",
                 near.0
             );
             return U128(0);
         }
         events::withdraw_near(&account, near.0, fee.0);
-        Promise::new(account)
-            .transfer(NearToken::from_yoctonear(near.0))
-            .detach();
         near
+    }
+}
+
+impl Contract {
+    /// Send NEAR this contract holds to `account`; `on_near_sent` parks it if the transfer fails.
+    fn pay_near(account: AccountId, near: U128, fee: U128) -> Promise {
+        Promise::new(account.clone())
+            .transfer(NearToken::from_yoctonear(near.0))
+            .then(
+                Self::ext(env::current_account_id())
+                    .with_static_gas(GAS_CB_SMALL)
+                    .on_near_sent(account, near, fee),
+            )
     }
 }
 
 #[near]
 impl Contract {
-    /// Retry a `withdraw_near` payout whose last step failed: pulls the parked NEAR from the
-    /// staking pool's available balance and sends it to the caller.
+    /// Retry a `withdraw_near` payout whose transfer failed: sends the parked NEAR (held by this
+    /// contract) to the caller.
     pub fn claim_pending(&mut self) -> Promise {
         let account = env::predecessor_account_id();
         let owed = self.pending_payouts.remove(&account).unwrap_or(0);
         require!(owed > 0, "nothing pending");
         self.in_flight += 1;
-        Promise::new(self.params.staking_pool.clone())
-            .function_call(
-                "withdraw".to_string(),
-                near_sdk::serde_json::json!({ "amount": U128(owed) })
-                    .to_string()
-                    .into_bytes(),
-                NearToken::from_yoctonear(0),
-                GAS_POOL_WITHDRAW,
-            )
-            .then(
-                Self::ext(env::current_account_id())
-                    .with_static_gas(GAS_CB_SMALL)
-                    .on_near_pulled(account, U128(owed), U128(0)),
-            )
+        Self::pay_near(account, U128(owed), U128(0))
     }
 
     pub fn get_pending(&self, account_id: AccountId) -> U128 {

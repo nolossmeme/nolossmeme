@@ -1,7 +1,7 @@
 # VPS deployment (nolossmeme.fun)
 
-The whole product runs on one VPS behind the host nginx: the static sites (landing at `/`,
-dApp at `/app`) in one nginx container and the backend (indexer, API, keeper, faucet) in another.
+The whole product runs on one VPS behind the host nginx: the static sites (landing on `nolossmeme.fun`,
+the dApp on `app.nolossmeme.fun`) in one nginx container and the backend (indexer, API, keeper, faucet) in another.
 Containers listen on loopback only; host nginx terminates TLS.
 
 | Host                    | Container port | Image                         |
@@ -30,7 +30,7 @@ cd ~/apps/nolossmeme && git pull && docker compose -f deploy/vps/compose.yml --e
 
 TLS: Let's Encrypt certificates live in `~/le/config/live/<host>` (same layout as the other
 sites on this VPS) and are renewed by the existing certbot cron, whose deploy hook reloads nginx.
-Issued 2026-11-09 for `nolossmeme.fun` and `api.nolossmeme.fun`. `www.nolossmeme.fun` only
+Issued 2026-11-09 for `nolossmeme.fun`, `app.nolossmeme.fun` and `api.nolossmeme.fun`; `nolossmeme.fun/app/*` redirects to the app host. `www.nolossmeme.fun` only
 redirects over HTTP until it has a DNS record and a certificate.
 
 The indexer resumes from its cursor on restart (data in the `backend-data` volume); the first

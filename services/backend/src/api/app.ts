@@ -36,7 +36,11 @@ function int(v: string | undefined, fallback: number, max: number): number {
 
 export function createApp({ store, corsOrigin, head, startedAt, faucet }: ApiDeps): Hono {
   const app = new Hono();
-  app.use("*", cors({ origin: corsOrigin }));
+  const origins = corsOrigin
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean);
+  app.use("*", cors({ origin: origins.length === 1 ? origins[0]! : origins }));
 
   app.get("/", (c) =>
     c.json({

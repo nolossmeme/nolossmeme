@@ -1,19 +1,34 @@
 # docker compose -f deploy/vps/compose.yml --env-file deploy/vps/.env up -d --build
-# Host nginx terminates TLS and proxies nolossmeme.fun -> 127.0.0.1:3181, api.nolossmeme.fun -> 127.0.0.1:3182.
+# Host nginx terminates TLS: nolossmeme.fun -> 127.0.0.1:3181 (landing), app.nolossmeme.fun -> 3183 (dApp),
+# api.nolossmeme.fun -> 3182 (backend).
 name: nolossmeme
 
 services:
-  site:
+  landing:
     build:
       context: ../..
       dockerfile: deploy/vps/site/Dockerfile
-      args:
+      target: landing
+      args: &site-args
         VITE_INDEXER_URL: ${VITE_INDEXER_URL:-https://api.nolossmeme.fun}
         VITE_TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
-    image: nolossmeme-site:latest
+        VITE_APP_URL: https://app.nolossmeme.fun/
+        VITE_LANDING_URL: https://nolossmeme.fun/
+    image: nolossmeme-landing:latest
     restart: unless-stopped
     ports:
       - "127.0.0.1:3181:80"
+
+  app:
+    build:
+      context: ../..
+      dockerfile: deploy/vps/site/Dockerfile
+      target: app
+      args: *site-args
+    image: nolossmeme-app:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3183:80"
 
   backend:
     build:
@@ -29,7 +44,7 @@ services:
       NEAR_NETWORK: testnet
       DATABASE_URL: file:/data/nolossmeme.db
       PORT: "8787"
-      CORS_ORIGIN: ${CORS_ORIGIN:-https://nolossmeme.fun}
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://app.nolossmeme.fun,https://nolossmeme.fun}
       LOG_LEVEL: info
       KEEPER_ACCOUNT_ID: ${KEEPER_ACCOUNT_ID:-}
       KEEPER_PRIVATE_KEY: ${KEEPER_PRIVATE_KEY:-}

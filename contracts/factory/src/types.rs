@@ -14,6 +14,10 @@ pub struct PoolParams {
     pub streak_step_bps: u16,
     pub max_streak_bonus_bps: u16,
     pub min_deposit: U128,
+    /// Check-ins the community needs per epoch for its share of the emission (0 means 1).
+    /// Miss it and that share is never minted (burned) and the community streak resets.
+    #[serde(default)]
+    pub checkin_target: u32,
 }
 
 #[near(serializers = [json, borsh])]

@@ -58,6 +58,7 @@ impl FactoryFixture {
             "jackpot_bps": 7000,
             "streak_step_bps": 1000,
             "max_streak_bonus_bps": 5000,
+            "checkin_target": 1,
             "min_deposit": (ONE_NEAR / 10).to_string(),
         });
         Ok(self

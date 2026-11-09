@@ -76,6 +76,7 @@ async fn regression_factory_refunds_when_pool_init_fails() -> testresult::TestRe
         "jackpot_bps": 12_000,
         "streak_step_bps": 1000,
         "max_streak_bonus_bps": 5000,
+        "checkin_target": 1,
         "min_deposit": ONE_NEAR.to_string(),
     });
     factory

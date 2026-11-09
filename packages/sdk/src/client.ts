@@ -76,6 +76,15 @@ export class NoLossMemeClient {
     return this.view(pool, "ft_metadata");
   }
 
+  /** NEAR parked for `claim_pending` (0 on pools that predate it). */
+  async getPending(pool: string, accountId: string): Promise<bigint> {
+    try {
+      return BigInt(await this.view<string>(pool, "get_pending", { account_id: accountId }));
+    } catch {
+      return 0n;
+    }
+  }
+
   async getMemeBalance(pool: string, accountId: string): Promise<bigint> {
     return BigInt(await this.view<string>(pool, "ft_balance_of", { account_id: accountId }));
   }

@@ -31,6 +31,12 @@ describe("actions", () => {
     expect(tx.actions[0]!.params.deposit).toBe(parseNear("2").toString());
   });
 
+  it("claimPending calls claim_pending without a deposit", () => {
+    const tx = actions.claimPending(POOL);
+    expect(tx.actions[0]!.params.methodName).toBe("claim_pending");
+    expect(tx.actions[0]!.params.deposit).toBe("0");
+  });
+
   it("redeem attaches exactly one yocto", () => {
     expect(actions.redeem(POOL, 10n).actions[0]!.params.deposit).toBe("1");
   });

@@ -74,6 +74,11 @@ export function formatDuration(seconds: number): string {
   return `${seconds}s`;
 }
 
+/** "1 depositor", "3 depositors". */
+export function plural(n: number, word: string): string {
+  return `${n} ${word}${n === 1 ? "" : "s"}`;
+}
+
 export function shortAccount(accountId: string, max = 20): string {
   if (accountId.length <= max) return accountId;
   return `${accountId.slice(0, max - 7)}…${accountId.slice(-4)}`;

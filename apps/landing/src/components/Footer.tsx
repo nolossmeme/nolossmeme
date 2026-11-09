@@ -62,7 +62,7 @@ export function Footer() {
               <li>
                 <a
                   className="hover:text-text"
-                  href="https://testnet.nearblocks.io/address/pad.nolossmeme.testnet"
+                  href="https://testnet.nearblocks.io/address/fun.nolossmeme.testnet"
                   target="_blank"
                   rel="noreferrer"
                 >
@@ -84,7 +84,7 @@ export function Footer() {
         </div>
         <div className="mt-16 border-t border-dashed border-white/15 pt-6 flex flex-wrap items-center justify-between gap-4 text-xs text-muted">
           <span>© 2026 NoLossMeme contributors · MIT</span>
-          <span className="font-mono">pad.nolossmeme.testnet</span>
+          <span className="font-mono">fun.nolossmeme.testnet</span>
         </div>
         <div
           className="pointer-events-none select-none mt-6 display text-[clamp(3rem,14vw,11rem)] leading-none text-white/[0.04]"

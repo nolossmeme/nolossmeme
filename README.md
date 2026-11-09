@@ -120,10 +120,10 @@ Through the web app (**Launch** page) or with the CLI:
 ```bash
 near contract call-function as-transaction pad.nolossmeme.testnet create_meme \
   json-args '{"slug":"pepn","name":"Pepe of NEAR","symbol":"PEPN","icon":"🐸","params":{"epoch_length_ns":"86400000000000","initial_emission":"1000000000000000000000","halving_every":30,"jackpot_bps":7000,"streak_step_bps":1000,"max_streak_bonus_bps":5000,"min_deposit":"100000000000000000000000"}}' \
-  prepaid-gas '300 Tgas' attached-deposit '3.5 NEAR' sign-as you.testnet network-config testnet sign-with-keychain send
+  prepaid-gas '300 Tgas' attached-deposit '4 NEAR' sign-as you.testnet network-config testnet sign-with-keychain send
 ```
 
-The attached NEAR funds the new account's storage (`get_launch_cost`, ≈ 3.2 Ⓝ). To deploy a fresh factory: `contracts/scripts/deploy-testnet.sh <account.testnet>`. Earlier factories at `nolossmeme.testnet` and `factory.nolossmeme.testnet` run older pool code (no events, no `fund_treasury`) and are kept only as history; pool code is frozen per factory, so fixes ship as a new factory.
+The attached NEAR funds the new account's storage (`get_launch_cost`, ≈ 3.8 Ⓝ). To deploy a fresh factory: `contracts/scripts/deploy-testnet.sh <account.testnet>`. Earlier factories at `nolossmeme.testnet` and `factory.nolossmeme.testnet` run older pool code (no events, no `fund_treasury`) and are kept only as history; pool code is frozen per factory, so fixes ship as a new factory.
 
 ## Known limits
 

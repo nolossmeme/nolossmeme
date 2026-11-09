@@ -31,7 +31,7 @@ import { SeriesChart } from "../components/SeriesChart";
 import { StatTile } from "../components/StatTile";
 import { useAccountActivity, usePoolActivity, usePoolSeries } from "../hooks/useIndexer";
 import { useMeme } from "../hooks/useMemes";
-import { useDepositors, useDraws, useMyPosition, usePoolState } from "../hooks/usePool";
+import { useDepositors, useDraws, useMyPosition, usePending, usePoolState } from "../hooks/usePool";
 import { explorerAccount } from "../lib/client";
 import { faucetEnabled } from "../lib/faucet";
 import { indexerEnabled } from "../lib/indexer";
@@ -215,6 +215,7 @@ function PositionCard({
   const poolMin = BigInt(state?.params.min_deposit ?? 0);
   const minDeposit = poolMin > STAKING_MIN_DEPOSIT ? poolMin : STAKING_MIN_DEPOSIT;
   const canSponsor = state?.total_funded !== undefined;
+  const { data: pending } = usePending(pool, tx.signedAccountId || undefined);
 
   const submit = async () => {
     if (tab === "deposit") {
@@ -265,6 +266,19 @@ function PositionCard({
           <dd className="font-mono text-lime">{(odds * 100).toFixed(2)}%</dd>
         </div>
       </dl>
+
+      {pending !== undefined && pending > 0n && (
+        <div className="rounded-2xl border border-amber/40 bg-amber/10 p-3 text-sm flex items-center justify-between gap-3">
+          <span>{formatNear(pending, 4)} Ⓝ from a NEAR withdrawal is waiting for you.</span>
+          <button
+            className="btn-accent"
+            disabled={tx.pending}
+            onClick={() => void tx.send(actions.claimPending(pool), "Claim")}
+          >
+            Claim
+          </button>
+        </div>
+      )}
 
       <button
         className="btn-secondary"

@@ -103,7 +103,11 @@ export function MemePage() {
           <StatTile
             label="Floor price"
             value={`${formatNear(state.floor_price, 7)} Ⓝ`}
-            hint={`treasury ${formatNear(state.treasury_near, 4)} Ⓝ`}
+            hint={
+              state.total_funded && BigInt(state.total_funded) > 0n
+                ? `treasury ${formatNear(state.treasury_near, 4)} Ⓝ · ${formatNear(state.total_funded, 2)} Ⓝ from sponsors`
+                : `treasury ${formatNear(state.treasury_near, 4)} Ⓝ`
+            }
             accent
           />
           <StatTile
@@ -184,7 +188,7 @@ export function MemePage() {
   );
 }
 
-type Tab = "deposit" | "withdraw" | "redeem";
+type Tab = "deposit" | "withdraw" | "redeem" | "sponsor";
 
 function PositionCard({
   pool,
@@ -209,6 +213,7 @@ function PositionCard({
   const odds = me ? winChance(BigInt(me.weight), totalWeight) : 0;
   const poolMin = BigInt(state?.params.min_deposit ?? 0);
   const minDeposit = poolMin > STAKING_MIN_DEPOSIT ? poolMin : STAKING_MIN_DEPOSIT;
+  const canSponsor = state?.total_funded !== undefined;
 
   const submit = async () => {
     if (tab === "deposit") {
@@ -227,6 +232,10 @@ function PositionCard({
           )
         : actions.withdraw(pool, all ? undefined : yocto);
       if (await tx.send(call, "Withdraw")) setAmount("");
+    } else if (tab === "sponsor") {
+      const yocto = parseNear(amount || "0");
+      if (yocto < minDeposit) return;
+      if (await tx.send(actions.fundTreasury(pool, yocto), "Sponsor")) setAmount("");
     } else {
       const yocto = amount ? parseMeme(amount) : balance;
       if (yocto <= 0n) return;
@@ -267,15 +276,17 @@ function PositionCard({
       </button>
 
       <div className="flex gap-1 border-b border-border pb-2">
-        {(["deposit", "withdraw", "redeem"] as Tab[]).map((t) => (
-          <button
-            key={t}
-            className={`tab ${tab === t ? "tab-active" : ""}`}
-            onClick={() => setTab(t)}
-          >
-            {t[0]!.toUpperCase() + t.slice(1)}
-          </button>
-        ))}
+        {(["deposit", "withdraw", "redeem", ...(canSponsor ? ["sponsor"] : [])] as Tab[]).map(
+          (t) => (
+            <button
+              key={t}
+              className={`tab ${tab === t ? "tab-active" : ""}`}
+              onClick={() => setTab(t)}
+            >
+              {t[0]!.toUpperCase() + t.slice(1)}
+            </button>
+          ),
+        )}
       </div>
 
       {tab === "deposit" && (
@@ -307,6 +318,16 @@ function PositionCard({
           </p>
         </>
       )}
+      {tab === "sponsor" && (
+        <>
+          <AmountInput value={amount} onChange={setAmount} unit="Ⓝ" />
+          <p className="text-xs text-muted">
+            Stake NEAR straight into the treasury. It is not principal and cannot be withdrawn: it
+            only raises the floor every {symbol} is redeemable at. Minimum{" "}
+            {formatNear(minDeposit, 2)} Ⓝ.
+          </p>
+        </>
+      )}
       {tab === "redeem" && (
         <>
           <AmountInput
@@ -325,7 +346,9 @@ function PositionCard({
         className="btn-primary"
         disabled={
           tx.pending ||
-          (tab === "deposit" && amount !== "" && parseNear(amount || "0") < minDeposit)
+          ((tab === "deposit" || tab === "sponsor") &&
+            amount !== "" &&
+            parseNear(amount || "0") < minDeposit)
         }
         onClick={() => void submit()}
       >

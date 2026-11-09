@@ -26,6 +26,7 @@ const steps = [
 ];
 
 const limits = [
+  'On testnet, validators pay no staking rewards, so stNEAR never appreciates. A backend job stands in for that yield by sponsoring each pool\'s treasury with fund_treasury on a schedule; every subsidy is public (fund events, total_funded) and shown as "from sponsors". On mainnet the treasury is real staking yield plus whatever sponsors add.',
   "Randomness comes from the block producer's seed mixed with epoch data. A validator could predict a draw it produces. A commit-reveal or VRF is the upgrade path.",
   "The draw settles every depositor in one call, which comfortably handles hundreds of accounts, not tens of thousands.",
   "Withdrawing straight to NEAR depends on Meta Pool's liquidity pool and pays its swap fee. Withdrawing as stNEAR always works and is fee-free.",

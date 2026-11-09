@@ -2,7 +2,7 @@
 # Deploy a fresh factory to testnet and launch a first pool.
 #
 #   contracts/scripts/deploy-testnet.sh <factory-account.testnet> [slug] [symbol] [name] [icon]
-#   e.g. contracts/scripts/deploy-testnet.sh fun.nolossmeme.testnet dogn DOGN "Doge of NEAR" 🐶
+#   e.g. contracts/scripts/deploy-testnet.sh meme.nolossmeme.testnet dogn DOGN "Doge of NEAR" 🐶
 #
 # Requires cargo-near and near-cli-rs, and a full-access key for the factory account in
 # the legacy keychain (~/.near-credentials). The pool code is stored once and frozen.

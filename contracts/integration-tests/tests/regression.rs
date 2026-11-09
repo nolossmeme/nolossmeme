@@ -101,3 +101,63 @@ async fn regression_factory_refunds_when_pool_init_fails() -> testresult::TestRe
     );
     Ok(())
 }
+
+/// 2026-11-09 on testnet: Meta Pool mints ~0.06% fewer shares than its quoted price implies, so the
+/// last withdrawer could not be covered at the quoted price; the callback panicked, rolled back the
+/// in-flight counter and locked the pool's draws for good. Withdrawals are now pro-rata solvent.
+#[tokio::test]
+async fn regression_withdraw_all_with_a_deposit_spread() -> testresult::TestResult<()> {
+    let f = Fixture::new().await?;
+    f.metapool
+        .call_function("set_deposit_spread_bps", json!({ "bps": "6" }))
+        .transaction()
+        .with_signer(f.metapool.account_id().clone(), f.signer.clone())
+        .send_to(&f.network)
+        .await?
+        .assert_success();
+    f.deposit(&f.alice, 2 * ONE_NEAR).await?;
+    f.deposit(&f.bob, 3 * ONE_NEAR).await?;
+    f.call(&f.bob, "fund_treasury", json!({}), NearToken::from_near(1))
+        .await?
+        .assert_success();
+    let treasury = u128_of(&f.state().await?["treasury_shares"]);
+
+    f.call(
+        &f.alice,
+        "withdraw",
+        json!({ "amount": null }),
+        NearToken::from_yoctonear(0),
+    )
+    .await?
+    .assert_success();
+    // the last withdrawer, through liquid unstake: used to panic and lock the pool
+    f.call(
+        &f.bob,
+        "withdraw_near",
+        json!({ "amount": null, "min_near": "0" }),
+        NearToken::from_yoctonear(0),
+    )
+    .await?
+    .assert_success();
+    let s = f.state().await?;
+    assert_eq!(u128_of(&s["total_principal"]), 0);
+    assert_eq!(s["in_flight"], 0, "draws are not blocked");
+    assert_eq!(
+        u128_of(&s["treasury_shares"]),
+        treasury,
+        "the treasury is untouched"
+    );
+    let pool_balance = f
+        .st_near_balance(&near_api::Account(f.pool.0.clone()))
+        .await?;
+    assert_eq!(
+        pool_balance, treasury,
+        "only the treasury is left in the vault"
+    );
+    // and the pool keeps working
+    f.next_epoch().await?;
+    f.call(&f.alice, "draw", json!({}), NearToken::from_yoctonear(0))
+        .await?
+        .assert_success();
+    Ok(())
+}

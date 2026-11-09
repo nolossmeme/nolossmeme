@@ -6,3 +6,7 @@ packages:
 
 onlyBuiltDependencies:
   - esbuild
+
+overrides:
+  # @vitest/coverage-v8 3 pins test-exclude 7, which pulls the deprecated glob 10
+  test-exclude: ^8.0.0

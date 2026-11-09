@@ -46,7 +46,8 @@ into a pool contract that stakes it with Meta Pool; principal stays withdrawable
 at any time. Every epoch, anyone can trigger a draw: the staking yield since the last draw is
 swept into the token treasury and a fixed, halving emission of the meme token is minted,
 70 % to one time-weighted random depositor (a daily check-in streak boosts your tickets) and
-the rest split among everyone who checked in. Every token can be burned for its share of
+the rest split among everyone who checked in. A public `fund_treasury` lets creators and sponsors add to the
+pot (on testnet, where validators pay no rewards, a labelled subsidy stands in for yield). Every token can be burned for its share of
 the treasury, so the floor price is backed by yield only and can never reach zero. All
 parameters are fixed at launch and there are no admin keys. Built on NEAR: Rust contracts
 (NEP-141/145/148, factory deploying immutable pools, Meta Pool stNEAR integration), a

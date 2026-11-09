@@ -34,6 +34,11 @@ export function fundTreasury(pool: string, yocto: bigint): ContractCall {
   return call(pool, "fund_treasury", {}, GAS.fundTreasury, yocto);
 }
 
+/** Retry a `withdraw_near` payout whose last step failed (see `getPending`). */
+export function claimPending(pool: string): ContractCall {
+  return call(pool, "claim_pending", {}, GAS.claimPending, 0n);
+}
+
 /** Withdraw principal as stNEAR. Omit `yocto` to withdraw everything. */
 export function withdraw(pool: string, yocto?: bigint): ContractCall {
   return call(

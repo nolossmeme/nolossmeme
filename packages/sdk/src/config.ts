@@ -31,6 +31,7 @@ export const NETWORKS: Record<NetworkId, NetworkConfig> = {
 export const GAS = {
   deposit: 150n,
   fundTreasury: 150n,
+  claimPending: 100n,
   withdraw: 120n,
   withdrawNear: 200n,
   checkIn: 30n,

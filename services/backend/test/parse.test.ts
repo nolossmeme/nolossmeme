@@ -5,6 +5,13 @@ import { describe, expect, it } from "vitest";
 import type { LakeBlock } from "../src/indexer/neardata.js";
 import { launchedPools, parseBlock } from "../src/indexer/parse.js";
 
+/** URL of a fetch input, for fake fetch implementations. */
+function urlOf(input: string | URL | Request): string {
+  if (typeof input === "string") return input;
+  if (input instanceof URL) return input.href;
+  return input.url;
+}
+
 const blocks = JSON.parse(
   readFileSync(new URL("./fixtures/deposit-blocks.json", import.meta.url), "utf8"),
 ) as LakeBlock[];
@@ -209,7 +216,7 @@ describe("Rpc.touchedAccounts", async () => {
     () =>
       Promise.resolve(new Response(JSON.stringify(body), { status: 200 }));
   it("returns the set of touched accounts", async () => {
-    const rpc = new Rpc("http://rpc", {
+    const rpc = new Rpc("https://rpc.example", {
       fetchImpl: fake({
         result: {
           changes: [
@@ -220,10 +227,13 @@ describe("Rpc.touchedAccounts", async () => {
         },
       }),
     });
-    expect([...(await rpc.touchedAccounts(1))].sort()).toEqual(["a", "b"]);
+    expect([...(await rpc.touchedAccounts(1))].sort((x, y) => x.localeCompare(y))).toEqual([
+      "a",
+      "b",
+    ]);
   });
   it("maps unknown blocks to UnknownBlock", async () => {
-    const rpc = new Rpc("http://rpc", {
+    const rpc = new Rpc("https://rpc.example", {
       fetchImpl: fake({ error: { name: "HANDLER_ERROR", cause: { name: "UNKNOWN_BLOCK" } } }),
     });
     await expect(rpc.touchedAccounts(5)).rejects.toBeInstanceOf(UnknownBlock);
@@ -300,14 +310,24 @@ describe("Rpc rotation", async () => {
   it("round-robins across endpoints", async () => {
     const hits: string[] = [];
     const fetchImpl: typeof fetch = (input) => {
-      hits.push(typeof input === "string" ? input : input instanceof URL ? input.href : input.url);
+      hits.push(urlOf(input));
       return Promise.resolve(
         new Response(JSON.stringify({ result: { changes: [] } }), { status: 200 }),
       );
     };
-    const rpc = new Rpc(["http://a", "http://b", "http://c"], { rps: 100, fetchImpl });
+    const rpc = new Rpc(["https://a.example", "https://b.example", "https://c.example"], {
+      rps: 100,
+      fetchImpl,
+    });
     for (let h = 1; h <= 6; h++) await rpc.touchedAccounts(h);
-    expect(hits).toEqual(["http://a", "http://b", "http://c", "http://a", "http://b", "http://c"]);
+    expect(hits).toEqual([
+      "https://a.example",
+      "https://b.example",
+      "https://c.example",
+      "https://a.example",
+      "https://b.example",
+      "https://c.example",
+    ]);
     expect(rpc.size).toBe(3);
   });
 });
@@ -318,9 +338,9 @@ describe("Rpc cooldown", async () => {
   it("skips an endpoint that answered 429 and keeps using the others", async () => {
     const hits: string[] = [];
     const fetchImpl: typeof fetch = (input) => {
-      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+      const url = urlOf(input);
       hits.push(url);
-      if (url === "http://slow")
+      if (url === "https://slow.example")
         return Promise.resolve(
           new Response("", { status: 429, headers: { "retry-after": "600" } }),
         );
@@ -328,12 +348,12 @@ describe("Rpc cooldown", async () => {
         new Response(JSON.stringify({ result: { changes: [] } }), { status: 200 }),
       );
     };
-    const rpc = new Rpc(["http://fast", "http://slow"], { rps: 100, fetchImpl });
+    const rpc = new Rpc(["https://fast.example", "https://slow.example"], { rps: 100, fetchImpl });
     await rpc.touchedAccounts(1); // fast
     await expect(rpc.touchedAccounts(2)).rejects.toBeInstanceOf(RateLimited); // slow -> 429, short wait
     for (let h = 3; h <= 6; h++) await rpc.touchedAccounts(h); // slow is cooling: all go to fast
-    expect(hits.filter((h) => h === "http://slow")).toHaveLength(1);
-    expect(hits.filter((h) => h === "http://fast")).toHaveLength(5);
+    expect(hits.filter((h) => h === "https://slow.example")).toHaveLength(1);
+    expect(hits.filter((h) => h === "https://fast.example")).toHaveLength(5);
   });
 });
 
@@ -350,7 +370,7 @@ describe("Rpc unknown block over HTTP 422", async () => {
       },
       id: 1,
     };
-    const rpc = new Rpc("http://rpc", {
+    const rpc = new Rpc("https://rpc.example", {
       rps: 100,
       fetchImpl: () => Promise.resolve(new Response(JSON.stringify(body), { status: 422 })),
     });

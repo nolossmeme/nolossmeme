@@ -57,6 +57,42 @@ export class Scanner {
   }
 
   /** Index [from, to] inclusive with bounded concurrency; skips heights the chain never produced. */
+  /** Whether block `h` touched the factory or a pool; retries transient RPC errors. */
+  private async touchesWatched(h: number): Promise<boolean> {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const accounts = await this.rpc.touchedAccounts(h);
+        return [...accounts].some((a) => this.isWatched(a));
+      } catch (e) {
+        if (e instanceof UnknownBlock) return false;
+        if (e instanceof RateLimited) {
+          this.noteThrottle(h, e.retryAfterMs);
+          // spread retries without a PRNG: offset by height
+          await sleep(e.retryAfterMs + (h % 5) * 100);
+          continue;
+        }
+        if (attempt >= 20) throw e;
+        if (attempt % 5 === 4)
+          log.warn("rpc retry", { height: h, attempt, error: String(e).slice(0, 120) });
+        await sleep(Math.min(10_000, 300 * 2 ** attempt));
+      }
+    }
+  }
+
+  private isWatched(account: string): boolean {
+    return (
+      account === this.watch.factory ||
+      this.watch.pools.has(account) ||
+      account.endsWith(`.${this.watch.factory}`)
+    );
+  }
+
+  private noteThrottle(height: number, waitMs: number): void {
+    this.rpcThrottled += 1;
+    if (this.rpcThrottled % 25 === 1)
+      log.warn("rpc rate limited", { height, count: this.rpcThrottled, waitMs });
+  }
+
   /** Heights in [from, to] whose block touched a watched account (or every height when not sparse). */
   async candidateHeights(from: number, to: number): Promise<number[]> {
     const all = Array.from({ length: to - from + 1 }, (_, i) => from + i);
@@ -65,38 +101,7 @@ export class Scanner {
     const width = this.opts.rpcConcurrency ?? 8;
     for (let i = 0; i < all.length; i += width) {
       const slice = all.slice(i, i + width);
-      const touched = await Promise.all(
-        slice.map(async (h) => {
-          for (let attempt = 0; ; attempt++) {
-            try {
-              const accounts = await this.rpc.touchedAccounts(h);
-              return (
-                accounts.has(this.watch.factory) ||
-                [...accounts].some(
-                  (a) => this.watch.pools.has(a) || a.endsWith(`.${this.watch.factory}`),
-                )
-              );
-            } catch (e) {
-              if (e instanceof UnknownBlock) return false;
-              if (e instanceof RateLimited) {
-                this.rpcThrottled += 1;
-                if (this.rpcThrottled % 25 === 1)
-                  log.warn("rpc rate limited", {
-                    height: h,
-                    count: this.rpcThrottled,
-                    waitMs: e.retryAfterMs,
-                  });
-                await sleep(e.retryAfterMs + Math.random() * 500);
-                continue;
-              }
-              if (attempt >= 20) throw e;
-              if (attempt % 5 === 4)
-                log.warn("rpc retry", { height: h, attempt, error: String(e).slice(0, 120) });
-              await sleep(Math.min(10_000, 300 * 2 ** attempt));
-            }
-          }
-        }),
-      );
+      const touched = await Promise.all(slice.map((h) => this.touchesWatched(h)));
       slice.forEach((h, j) => touched[j] && out.push(h));
       if (i > 0 && i % 1_000 < width)
         log.info("prefilter progress", { height: slice[0], scanned: i, candidates: out.length });

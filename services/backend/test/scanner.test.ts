@@ -11,6 +11,13 @@ import { Scanner } from "../src/indexer/scanner.js";
 const FACTORY = "factory.nolossmeme.testnet";
 const POOL = "dogn.factory.nolossmeme.testnet";
 
+/** Accounts the fake RPC reports as touched per height. */
+const TOUCHED: Record<number, string[]> = {
+  103: [POOL],
+  107: [FACTORY],
+  108: ["someone-else.testnet"],
+};
+
 function fakeBlock(height: number, withDeposit: boolean): LakeBlock {
   const logs = withDeposit
     ? [
@@ -77,11 +84,7 @@ describe("Scanner sparse mode", () => {
     const rpc = {
       touchedAccounts: (h: number) => {
         if (h === 105) return Promise.reject(new UnknownBlock(h));
-        return Promise.resolve(
-          new Set(
-            h === 103 ? [POOL] : h === 107 ? [FACTORY] : h === 108 ? ["someone-else.testnet"] : [],
-          ),
-        );
+        return Promise.resolve(new Set(TOUCHED[h] ?? []));
       },
     } as unknown as Rpc;
     const client = {
@@ -108,7 +111,7 @@ describe("Scanner sparse mode", () => {
     });
     await scanner.refreshRegistry();
     const stored = await scanner.indexRange(100, 110);
-    expect(fetched.sort()).toEqual([103, 107]);
+    expect(fetched.toSorted((a, b) => a - b)).toEqual([103, 107]);
     expect(stored).toBe(1);
     expect(await store.getCursor()).toBe(110);
     expect((await store.listEvents({ kind: "deposit" }))[0]).toMatchObject({

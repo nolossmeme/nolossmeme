@@ -23,8 +23,8 @@
     "test:regression": "pnpm --filter @nolossmeme/sdk build && cd contracts && cargo test --workspace regression && cd .. && pnpm --filter @nolossmeme/sdk --filter @nolossmeme/web --filter @nolossmeme/keeper exec vitest run -t regression"
   },
   "devDependencies": {
-    "@commitlint/cli": "^19.8.1",
-    "@commitlint/config-conventional": "^19.8.1",
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.2",
     "prettier": "^3.6.2"

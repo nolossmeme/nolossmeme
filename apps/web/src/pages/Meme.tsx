@@ -7,7 +7,6 @@ import {
   formatNear,
   nsToDate,
   nsToSeconds,
-  parseMeme,
   parseNear,
   plural,
   secondsUntilDraw,
@@ -35,6 +34,7 @@ import { useDepositors, useDraws, useMyPosition, usePending, usePoolState } from
 import { explorerAccount } from "../lib/client";
 import { faucetEnabled } from "../lib/faucet";
 import { indexerEnabled } from "../lib/indexer";
+import { buildPositionCall, submitLabel, type PositionTab } from "../lib/positionCall";
 import { useTx } from "../lib/wallet";
 
 export function MemePage() {
@@ -189,7 +189,7 @@ export function MemePage() {
   );
 }
 
-type Tab = "deposit" | "withdraw" | "redeem" | "sponsor";
+type Tab = PositionTab;
 
 function PositionCard({
   pool,
@@ -217,33 +217,18 @@ function PositionCard({
   const canSponsor = state?.total_funded !== undefined;
   const { data: pending } = usePending(pool, tx.signedAccountId || undefined);
 
-  const submit = async () => {
-    if (tab === "deposit") {
-      const yocto = parseNear(amount || "0");
-      if (yocto < minDeposit) return;
-      if (await tx.send(actions.deposit(pool, yocto, me?.registered ?? false), "Deposit"))
-        setAmount("");
-    } else if (tab === "withdraw") {
-      const yocto = amount ? parseNear(amount) : undefined;
-      const all = yocto === undefined || yocto >= principal;
-      const call = asNear
-        ? actions.withdrawNear(
-            pool,
-            all ? undefined : yocto,
-            ((all ? principal : yocto) * 97n) / 100n,
-          )
-        : actions.withdraw(pool, all ? undefined : yocto);
-      if (await tx.send(call, "Withdraw")) setAmount("");
-    } else if (tab === "sponsor") {
-      const yocto = parseNear(amount || "0");
-      if (yocto < minDeposit) return;
-      if (await tx.send(actions.fundTreasury(pool, yocto), "Sponsor")) setAmount("");
-    } else {
-      const yocto = amount ? parseMeme(amount) : balance;
-      if (yocto <= 0n) return;
-      if (await tx.send(actions.redeem(pool, yocto > balance ? balance : yocto), "Redeem"))
-        setAmount("");
-    }
+  const submit = async (): Promise<void> => {
+    const next = buildPositionCall({
+      pool,
+      tab,
+      amount,
+      asNear,
+      principal,
+      memeBalance: balance,
+      minDeposit,
+      registered: me?.registered ?? false,
+    });
+    if (next && (await tx.send(next.call, next.label))) setAmount("");
   };
 
   return (
@@ -367,11 +352,7 @@ function PositionCard({
         }
         onClick={() => void submit()}
       >
-        {tx.pending
-          ? "Confirm in wallet…"
-          : tx.signedAccountId
-            ? tab[0]!.toUpperCase() + tab.slice(1)
-            : "Connect wallet"}
+        {submitLabel(tx.pending, Boolean(tx.signedAccountId), tab)}
       </button>
     </div>
   );

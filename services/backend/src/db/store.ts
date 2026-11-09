@@ -7,15 +7,12 @@ import type { Db } from "./client.js";
 import type { IndexedEvent } from "../indexer/events.js";
 
 /** libsql values are string | number | bigint | ArrayBuffer | null; our columns are text or integers. */
-const text = (v: Value): string =>
-  typeof v === "string"
-    ? v
-    : v === null || v === undefined
-      ? ""
-      : typeof v === "bigint" || typeof v === "number"
-        ? v.toString()
-        : "";
-const textOrNull = (v: Value): string | null => (v === null || v === undefined ? null : text(v));
+function text(v: Value): string {
+  if (typeof v === "string") return v;
+  if (typeof v === "bigint" || typeof v === "number") return v.toString();
+  return "";
+}
+const textOrNull = (v: Value): string | null => (v === null ? null : text(v));
 const col = (row: Row, name: string): Value => row[name] as Value;
 
 export interface SnapshotRow {
@@ -124,7 +121,8 @@ export class Store {
     if (filter.account) add("account = ?", filter.account);
     if (filter.kind) add("kind = ?", filter.kind);
     if (filter.before) add("block_height < ?", filter.before);
-    const sql = `SELECT * FROM events ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY block_height DESC, id DESC LIMIT ?`;
+    const whereSql = where.length > 0 ? "WHERE " + where.join(" AND ") : "";
+    const sql = `SELECT * FROM events ${whereSql} ORDER BY block_height DESC, id DESC LIMIT ?`;
     args.push(Math.min(filter.limit ?? 50, 500));
     const r = await this.db.execute({ sql, args });
     return r.rows.map((row) => ({

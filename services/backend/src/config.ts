@@ -7,6 +7,9 @@ const Env = z.object({
   RPC_URL: z.string().url().optional(),
   /** Comma-separated RPC endpoints to rotate for the block pre-filter (each has the same per-endpoint rate limit). */
   RPC_URLS: z.string().optional(),
+  /** RPC for jobs that read state and sign transactions (keeper, sponsor, faucet, snapshots). Kept
+   *  separate from the scanner so indexing can never use up the quota the money paths need. */
+  JOBS_RPC_URL: z.string().url().optional(),
   /** FastNEAR's free block archive, NEAR Lake format: https://testnet.neardata.xyz/v0/block/{height} */
   NEARDATA_URL: z.string().url().optional(),
   DATABASE_URL: z.string().default("file:./data/nolossmeme.db"),
@@ -53,6 +56,7 @@ export interface Config extends z.infer<typeof Env> {
   network: (typeof NETWORKS)[NetworkId];
   rpcUrl: string;
   rpcUrls: string[];
+  jobsRpcUrl: string;
   neardataUrl: string;
 }
 
@@ -64,6 +68,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     ...e,
     network,
     rpcUrl: e.RPC_URL ?? network.rpcUrl,
+    jobsRpcUrl:
+      e.JOBS_RPC_URL ?? (networkId === "testnet" ? "https://rpc.testnet.near.org" : network.rpcUrl),
     rpcUrls: (e.RPC_URLS ?? DEFAULT_RPC_URLS[networkId])
       .split(",")
       .map((u) => u.trim())

@@ -20,6 +20,8 @@ async function main(): Promise<void> {
   const db = await openDb(cfg.DATABASE_URL, cfg.DATABASE_AUTH_TOKEN);
   const store = new Store(db);
   const client = new NoLossMemeClient(cfg.network);
+  // Jobs read and write over their own endpoint; see JOBS_RPC_URL.
+  const jobsClient = new NoLossMemeClient({ ...cfg.network, rpcUrl: cfg.jobsRpcUrl });
   const data = new NearData(cfg.neardataUrl, { rps: cfg.NEARDATA_RPS });
 
   const roles = new Set(
@@ -49,14 +51,14 @@ async function main(): Promise<void> {
   );
 
   const stopSnapshots = roles.has("jobs")
-    ? startSnapshotJob(store, client, cfg.SNAPSHOT_INTERVAL_MS, () => head)
+    ? startSnapshotJob(store, jobsClient, cfg.SNAPSHOT_INTERVAL_MS, () => head)
     : () => undefined;
   const stopKeeper =
     roles.has("jobs") && cfg.KEEPER_ACCOUNT_ID && cfg.KEEPER_PRIVATE_KEY
       ? startKeeperJob(
           store,
-          client,
-          cfg.rpcUrl,
+          jobsClient,
+          cfg.jobsRpcUrl,
           cfg.KEEPER_ACCOUNT_ID,
           cfg.KEEPER_PRIVATE_KEY,
           cfg.KEEPER_INTERVAL_MS,
@@ -67,8 +69,8 @@ async function main(): Promise<void> {
     cfg.NEAR_NETWORK === "testnet" &&
     cfg.SPONSOR_ACCOUNT_ID &&
     cfg.SPONSOR_PRIVATE_KEY
-      ? startSponsorJob(store, client, {
-          rpcUrl: cfg.rpcUrl,
+      ? startSponsorJob(store, jobsClient, {
+          rpcUrl: cfg.jobsRpcUrl,
           accountId: cfg.SPONSOR_ACCOUNT_ID,
           privateKey: cfg.SPONSOR_PRIVATE_KEY,
           amountYocto: BigInt(Math.round(cfg.SPONSOR_AMOUNT_NEAR * 1_000_000)) * 10n ** 18n,
@@ -80,7 +82,7 @@ async function main(): Promise<void> {
     cfg.FAUCET_ACCOUNT_ID && cfg.FAUCET_PRIVATE_KEY && cfg.TURNSTILE_SECRET_KEY
       ? await buildFaucet(
           db,
-          cfg.rpcUrl,
+          cfg.jobsRpcUrl,
           cfg.FAUCET_ACCOUNT_ID,
           cfg.FAUCET_PRIVATE_KEY,
           cfg.TURNSTILE_SECRET_KEY,

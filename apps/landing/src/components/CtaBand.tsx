@@ -37,8 +37,8 @@ export function CtaBand() {
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-muted">
           Pick the epoch, emission, halving and jackpot split. The factory deploys an immutable pool
-          at <span className="font-mono text-text">yourslug.meme.nolossmeme.testnet</span>, no admin
-          keys included.
+          at <span className="font-mono text-text">yourslug.streak.nolossmeme.testnet</span>, no
+          admin keys included.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <a href={appLink("launch")} className="btn-accent">

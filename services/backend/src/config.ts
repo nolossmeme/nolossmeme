@@ -7,8 +7,8 @@ const Env = z.object({
   RPC_URL: z.url().optional(),
   /** FastNEAR transactions API, used to find the blocks that touched our accounts. */
   TX_API_URL: z.url().optional(),
-  /** RPC for jobs that read state and sign transactions (keeper, sponsor, faucet, snapshots). Kept
-   *  separate from the scanner so indexing can never use up the quota the money paths need. */
+  /** RPC for jobs that read state and sign transactions (keeper, sponsor, faucet, snapshots).
+   *  Defaults to the network RPC; the scanner uses the tx API and the archive, not this quota. */
   JOBS_RPC_URL: z.url().optional(),
   /** FastNEAR's free block archive, NEAR Lake format: https://testnet.neardata.xyz/v0/block/{height} */
   NEARDATA_URL: z.url().optional(),
@@ -64,8 +64,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     ...e,
     network,
     rpcUrl: e.RPC_URL ?? network.rpcUrl,
-    jobsRpcUrl:
-      e.JOBS_RPC_URL ?? (networkId === "testnet" ? "https://rpc.testnet.near.org" : network.rpcUrl),
+    // rpc.testnet.near.org is deprecated and answers 429 to servers.
+    jobsRpcUrl: e.JOBS_RPC_URL ?? network.rpcUrl,
     txApiUrl: e.TX_API_URL ?? DEFAULT_TX_API[networkId],
     neardataUrl:
       e.NEARDATA_URL ??

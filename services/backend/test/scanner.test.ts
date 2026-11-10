@@ -4,18 +4,16 @@ import { openDb } from "../src/db/client.js";
 import { Store } from "../src/db/store.js";
 import type { LakeBlock, NearData } from "../src/indexer/neardata.js";
 import { BlockNotFound } from "../src/indexer/neardata.js";
-import type { Rpc } from "../src/indexer/rpc.js";
-import { UnknownBlock } from "../src/indexer/rpc.js";
 import { Scanner } from "../src/indexer/scanner.js";
+import type { TxApi } from "../src/indexer/txapi.js";
 
 const FACTORY = "factory.nolossmeme.testnet";
 const POOL = "dogn.factory.nolossmeme.testnet";
 
-/** Accounts the fake RPC reports as touched per height. */
-const TOUCHED: Record<number, string[]> = {
-  103: [POOL],
-  107: [FACTORY],
-  108: ["someone-else.testnet"],
+/** Heights the fake transactions API reports per watched account (105 is a skipped height). */
+const TOUCHED: Record<string, number[]> = {
+  [POOL]: [103, 105],
+  [FACTORY]: [107],
 };
 
 function fakeBlock(height: number, withDeposit: boolean): LakeBlock {
@@ -71,7 +69,7 @@ function fakeBlock(height: number, withDeposit: boolean): LakeBlock {
 }
 
 describe("Scanner sparse mode", () => {
-  it("fetches only blocks the rpc says touched our accounts, and tolerates gaps", async () => {
+  it("fetches only blocks the tx api says touched our accounts, and tolerates gaps", async () => {
     const fetched: number[] = [];
     const data = {
       lastFinalHeight: () => Promise.resolve(110),
@@ -81,12 +79,14 @@ describe("Scanner sparse mode", () => {
         return Promise.resolve(fakeBlock(h, h === 103));
       },
     } as unknown as NearData;
-    const rpc = {
-      touchedAccounts: (h: number) => {
-        if (h === 105) return Promise.reject(new UnknownBlock(h));
-        return Promise.resolve(new Set(TOUCHED[h] ?? []));
+    const asked: string[][] = [];
+    const txApi = {
+      touchedHeights: (accounts: string[], from: number, to: number) => {
+        asked.push(accounts);
+        const hs = accounts.flatMap((a) => TOUCHED[a] ?? []).filter((h) => h >= from && h <= to);
+        return Promise.resolve(hs.toSorted((a, b) => a - b));
       },
-    } as unknown as Rpc;
+    } as unknown as TxApi;
     const client = {
       getMemes: () =>
         Promise.resolve([
@@ -103,15 +103,15 @@ describe("Scanner sparse mode", () => {
         ]),
     } as never;
     const store = new Store(await openDb(":memory:"));
-    const scanner = new Scanner(data, store, client, rpc, FACTORY, {
+    const scanner = new Scanner(data, store, client, txApi, FACTORY, {
       startBlock: 100,
       concurrency: 2,
       sparse: true,
-      rpcConcurrency: 4,
     });
     await scanner.refreshRegistry();
     const stored = await scanner.indexRange(100, 110);
-    expect(fetched.toSorted((a, b) => a - b)).toEqual([103, 107]);
+    expect(asked).toEqual([[FACTORY, POOL]]);
+    expect(fetched.toSorted((a, b) => a - b)).toEqual([103, 105, 107]);
     expect(stored).toBe(1);
     expect(await store.getCursor()).toBe(110);
     expect((await store.listEvents({ kind: "deposit" }))[0]).toMatchObject({

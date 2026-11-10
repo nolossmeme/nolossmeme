@@ -5,13 +5,6 @@ import { describe, expect, it } from "vitest";
 import type { LakeBlock } from "../src/indexer/neardata.js";
 import { launchedPools, parseBlock } from "../src/indexer/parse.js";
 
-/** URL of a fetch input, for fake fetch implementations. */
-function urlOf(input: string | URL | Request): string {
-  if (typeof input === "string") return input;
-  if (input instanceof URL) return input.href;
-  return input.url;
-}
-
 const blocks = JSON.parse(
   readFileSync(new URL("./fixtures/deposit-blocks.json", import.meta.url), "utf8"),
 ) as LakeBlock[];
@@ -209,37 +202,6 @@ describe("RateLimiter", async () => {
   });
 });
 
-describe("Rpc.touchedAccounts", async () => {
-  const { Rpc, UnknownBlock } = await import("../src/indexer/rpc.js");
-  const fake =
-    (body: unknown): typeof fetch =>
-    () =>
-      Promise.resolve(new Response(JSON.stringify(body), { status: 200 }));
-  it("returns the set of touched accounts", async () => {
-    const rpc = new Rpc("https://rpc.example", {
-      fetchImpl: fake({
-        result: {
-          changes: [
-            { type: "account_touched", account_id: "a" },
-            { type: "data_touched", account_id: "a" },
-            { type: "account_touched", account_id: "b" },
-          ],
-        },
-      }),
-    });
-    expect([...(await rpc.touchedAccounts(1))].sort((x, y) => x.localeCompare(y))).toEqual([
-      "a",
-      "b",
-    ]);
-  });
-  it("maps unknown blocks to UnknownBlock", async () => {
-    const rpc = new Rpc("https://rpc.example", {
-      fetchImpl: fake({ error: { name: "HANDLER_ERROR", cause: { name: "UNKNOWN_BLOCK" } } }),
-    });
-    await expect(rpc.touchedAccounts(5)).rejects.toBeInstanceOf(UnknownBlock);
-  });
-});
-
 describe("parseBlock with nolossmeme events (contracts after #43)", () => {
   const ev = (event: string, data: Record<string, unknown>) =>
     `EVENT_JSON:${JSON.stringify({ standard: "nolossmeme", version: "1.0.0", event, data: [data] })}`;
@@ -302,79 +264,6 @@ describe("parseBlock with nolossmeme events (contracts after #43)", () => {
     expect(events[1]!.data).toEqual({ streak: 3, epoch: 4 });
     expect(events[3]!.data).toEqual({ shares: null, fee: "10" });
     expect(launchedPools(events)).toEqual(["wojak.factory.nolossmeme.testnet"]);
-  });
-});
-
-describe("Rpc rotation", async () => {
-  const { Rpc } = await import("../src/indexer/rpc.js");
-  it("round-robins across endpoints", async () => {
-    const hits: string[] = [];
-    const fetchImpl: typeof fetch = (input) => {
-      hits.push(urlOf(input));
-      return Promise.resolve(
-        new Response(JSON.stringify({ result: { changes: [] } }), { status: 200 }),
-      );
-    };
-    const rpc = new Rpc(["https://a.example", "https://b.example", "https://c.example"], {
-      rps: 100,
-      fetchImpl,
-    });
-    for (let h = 1; h <= 6; h++) await rpc.touchedAccounts(h);
-    expect(hits).toEqual([
-      "https://a.example",
-      "https://b.example",
-      "https://c.example",
-      "https://a.example",
-      "https://b.example",
-      "https://c.example",
-    ]);
-    expect(rpc.size).toBe(3);
-  });
-});
-
-describe("Rpc cooldown", async () => {
-  const { Rpc } = await import("../src/indexer/rpc.js");
-  const { RateLimited } = await import("../src/indexer/neardata.js");
-  it("skips an endpoint that answered 429 and keeps using the others", async () => {
-    const hits: string[] = [];
-    const fetchImpl: typeof fetch = (input) => {
-      const url = urlOf(input);
-      hits.push(url);
-      if (url === "https://slow.example")
-        return Promise.resolve(
-          new Response("", { status: 429, headers: { "retry-after": "600" } }),
-        );
-      return Promise.resolve(
-        new Response(JSON.stringify({ result: { changes: [] } }), { status: 200 }),
-      );
-    };
-    const rpc = new Rpc(["https://fast.example", "https://slow.example"], { rps: 100, fetchImpl });
-    await rpc.touchedAccounts(1); // fast
-    await expect(rpc.touchedAccounts(2)).rejects.toBeInstanceOf(RateLimited); // slow -> 429, short wait
-    for (let h = 3; h <= 6; h++) await rpc.touchedAccounts(h); // slow is cooling: all go to fast
-    expect(hits.filter((h) => h === "https://slow.example")).toHaveLength(1);
-    expect(hits.filter((h) => h === "https://fast.example")).toHaveLength(5);
-  });
-});
-
-describe("Rpc unknown block over HTTP 422", async () => {
-  const { Rpc, UnknownBlock } = await import("../src/indexer/rpc.js");
-  it("maps a 422 UNKNOWN_BLOCK body to UnknownBlock instead of a transport error", async () => {
-    const body = {
-      jsonrpc: "2.0",
-      error: {
-        name: "HANDLER_ERROR",
-        cause: { name: "UNKNOWN_BLOCK" },
-        code: -32000,
-        message: "Server error",
-      },
-      id: 1,
-    };
-    const rpc = new Rpc("https://rpc.example", {
-      rps: 100,
-      fetchImpl: () => Promise.resolve(new Response(JSON.stringify(body), { status: 422 })),
-    });
-    await expect(rpc.touchedAccounts(276220816)).rejects.toBeInstanceOf(UnknownBlock);
   });
 });
 

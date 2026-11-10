@@ -23,13 +23,25 @@ const PAGES: Record<string, { account_txs: unknown[]; resume_token: string | nul
     resume_token: "more",
   },
 };
+/** Receipt heights per transaction. */
 const RECEIPTS: Record<string, number[]> = {
   mid: [1_050, 1_051, 1_053],
   old: [995, 999, 1_000],
 };
 
-describe("TxApi.touchedHeights", () => {
-  it("pages back past the lookback and returns receipt heights inside the range", async () => {
+const receipt = (tx: string, height: number) => ({
+  receipt: { receipt_id: `${tx}@${height}`, predecessor_id: "a", receiver_id: "pool", receipt: {} },
+  execution_outcome: {
+    id: `${tx}@${height}`,
+    block_height: height,
+    block_timestamp: height * 1e9,
+    block_hash: `b${height}`,
+    outcome: { executor_id: "pool", logs: [], status: { SuccessValue: "" }, receipt_ids: [] },
+  },
+});
+
+describe("TxApi.blocks", () => {
+  it("pages back past the lookback and returns Lake blocks for receipts inside the range", async () => {
     const calls: { path: string; body: Record<string, unknown> }[] = [];
     const fetchImpl: typeof fetch = (input, init) => {
       const path = new URL(input).pathname;
@@ -38,20 +50,24 @@ describe("TxApi.touchedHeights", () => {
       if (path === "/v0/account") return json(PAGES[(body.resume_token as string) ?? "first"]);
       const hashes = body.tx_hashes as string[];
       return json({
-        transactions: hashes.map((h) => {
-          const [tx, ...rx] = RECEIPTS[h]!;
-          return {
-            execution_outcome: { block_height: tx },
-            receipts: rx.map((b) => ({ execution_outcome: { block_height: b } })),
-          };
-        }),
+        transactions: hashes.map((h) => ({
+          transaction: { hash: h, signer_id: "a", receiver_id: "pool" },
+          receipts: RECEIPTS[h]!.map((b) => receipt(h, b)),
+        })),
       });
     };
     const api = new TxApi("https://tx.example", { rps: 100, fetchImpl });
-    expect(await api.touchedHeights(["pool"], 1_000, 1_100)).toEqual([1_000, 1_050, 1_051, 1_053]);
+    const blocks = await api.blocks(["pool"], 1_000, 1_100);
+    expect(blocks.map((b) => b.block.header.height)).toEqual([1_000, 1_050, 1_051, 1_053]);
     // stopped paging once the oldest tx predates the lookback window
     expect(calls.filter((c) => c.path === "/v0/account")).toHaveLength(2);
     expect(calls.at(-1)!.body.tx_hashes).toEqual(["mid", "old"]);
+    // every receipt carries its transaction hash for parseBlock
+    const [shard] = blocks[0]!.shards;
+    expect(shard!.chunk!.transactions[0]).toMatchObject({
+      transaction: { hash: "old" },
+      outcome: { execution_outcome: { outcome: { receipt_ids: ["old@1000"] } } },
+    });
   });
 
   it("maps HTTP 429 to RateLimited", async () => {
@@ -59,6 +75,6 @@ describe("TxApi.touchedHeights", () => {
       rps: 100,
       fetchImpl: () => json({}, 429),
     });
-    await expect(api.touchedHeights(["pool"], 1, 2)).rejects.toBeInstanceOf(RateLimited);
+    await expect(api.blocks(["pool"], 1, 2)).rejects.toBeInstanceOf(RateLimited);
   });
 });

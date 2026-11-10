@@ -1,15 +1,17 @@
-/** FastNEAR transactions API: which blocks touched an account, without asking about every block. */
-import { RateLimited, RateLimiter } from "./neardata.js";
+/** FastNEAR transactions API: the receipts that touched our accounts, without reading every block. */
+import { RateLimited, RateLimiter, type LakeBlock, type LakeReceiptOutcome } from "./neardata.js";
 
 interface AccountTx {
   transaction_hash: string;
   tx_block_height: number;
 }
-interface Outcome {
-  execution_outcome: { block_height: number };
-}
-interface TxDetail extends Outcome {
-  receipts: Outcome[];
+/** A receipt outcome in NEAR Lake shape, plus where it executed. */
+type Receipt = LakeReceiptOutcome & {
+  execution_outcome: { block_height: number; block_timestamp: number; block_hash: string };
+};
+interface TxDetail {
+  transaction: { hash: string; signer_id: string; receiver_id: string };
+  receipts: Receipt[];
 }
 
 /** Receipts land in blocks after their transaction; look this far back for transactions still executing. */
@@ -63,23 +65,52 @@ export class TxApi {
     }
   }
 
-  /** Sorted heights in [from, to] where a transaction or receipt touching `accounts` executed. */
-  async touchedHeights(accounts: string[], from: number, to: number): Promise<number[]> {
+  /** Lake-shaped blocks in [from, to], oldest first, holding only the receipts of transactions
+   *  that touched `accounts`. Each receipt is linked to its transaction hash. */
+  async blocks(accounts: string[], from: number, to: number): Promise<LakeBlock[]> {
     const hashes = new Set<string>();
     for (const a of accounts)
       for (const h of await this.txHashes(a, from - LOOKBACK_BLOCKS, to)) hashes.add(h);
     const list = [...hashes];
-    const heights = new Set<number>();
+    const byHeight = new Map<number, LakeBlock>();
     for (let i = 0; i < list.length; i += BATCH) {
       const { transactions } = await this.post<{ transactions: (TxDetail | null)[] }>(
         "/v0/transactions",
         { tx_hashes: list.slice(i, i + BATCH) },
       );
-      for (const o of transactions.flatMap((t) => (t ? [t, ...t.receipts] : []))) {
-        const h = o.execution_outcome.block_height;
-        if (h >= from && h <= to) heights.add(h);
-      }
+      for (const t of transactions) if (t) addReceipts(byHeight, t, from, to);
     }
-    return [...heights].sort((a, b) => a - b);
+    return [...byHeight.values()].sort((a, b) => a.block.header.height - b.block.header.height);
+  }
+}
+
+function addReceipts(
+  byHeight: Map<number, LakeBlock>,
+  t: TxDetail,
+  from: number,
+  to: number,
+): void {
+  for (const r of t.receipts) {
+    const {
+      block_height: height,
+      block_timestamp: timestamp,
+      block_hash: hash,
+    } = r.execution_outcome;
+    if (height < from || height > to) continue;
+    let block = byHeight.get(height);
+    if (!block) {
+      block = {
+        block: { header: { height, timestamp, hash } },
+        shards: [{ shard_id: 0, chunk: { transactions: [] }, receipt_execution_outcomes: [] }],
+      };
+      byHeight.set(height, block);
+    }
+    const shard = block.shards[0]!;
+    shard.receipt_execution_outcomes.push(r);
+    // A one-receipt "transaction" entry lets parseBlock map this receipt to its hash.
+    shard.chunk!.transactions.push({
+      transaction: t.transaction,
+      outcome: { execution_outcome: { outcome: { receipt_ids: [r.receipt.receipt_id] } } },
+    });
   }
 }

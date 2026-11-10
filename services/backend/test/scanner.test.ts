@@ -3,16 +3,16 @@ import { describe, expect, it } from "vitest";
 import { openDb } from "../src/db/client.js";
 import { Store } from "../src/db/store.js";
 import type { LakeBlock, NearData } from "../src/indexer/neardata.js";
-import { BlockNotFound, RateLimited } from "../src/indexer/neardata.js";
+import { RateLimited } from "../src/indexer/neardata.js";
 import { Scanner } from "../src/indexer/scanner.js";
 import type { TxApi } from "../src/indexer/txapi.js";
 
 const FACTORY = "factory.nolossmeme.testnet";
 const POOL = "dogn.factory.nolossmeme.testnet";
 
-/** Heights the fake transactions API reports per watched account (105 is a skipped height). */
+/** Heights the fake transactions API has receipts at, per watched account. */
 const TOUCHED: Record<string, number[]> = {
-  [POOL]: [103, 105],
+  [POOL]: [103],
   [FACTORY]: [107],
 };
 
@@ -69,22 +69,17 @@ function fakeBlock(height: number, withDeposit: boolean): LakeBlock {
 }
 
 describe("Scanner sparse mode", () => {
-  it("fetches only blocks the tx api says touched our accounts, and tolerates gaps", async () => {
-    const fetched: number[] = [];
+  it("indexes the tx api's receipts for our accounts without reading the archive", async () => {
     const data = {
       lastFinalHeight: () => Promise.resolve(110),
-      block: (h: number) => {
-        fetched.push(h);
-        if (h === 105) return Promise.reject(new BlockNotFound(h));
-        return Promise.resolve(fakeBlock(h, h === 103));
-      },
+      block: () => Promise.reject(new Error("the archive must not be read in sparse mode")),
     } as unknown as NearData;
     const asked: string[][] = [];
     const txApi = {
-      touchedHeights: (accounts: string[], from: number, to: number) => {
+      blocks: (accounts: string[], from: number, to: number) => {
         asked.push(accounts);
         const hs = accounts.flatMap((a) => TOUCHED[a] ?? []).filter((h) => h >= from && h <= to);
-        return Promise.resolve(hs.toSorted((a, b) => a - b));
+        return Promise.resolve(hs.toSorted((a, b) => a - b).map((h) => fakeBlock(h, h === 103)));
       },
     } as unknown as TxApi;
     const client = {
@@ -111,13 +106,40 @@ describe("Scanner sparse mode", () => {
     await scanner.refreshRegistry();
     const stored = await scanner.indexRange(100, 110);
     expect(asked).toEqual([[FACTORY, POOL]]);
-    expect(fetched.toSorted((a, b) => a - b)).toEqual([103, 105, 107]);
     expect(stored).toBe(1);
     expect(await store.getCursor()).toBe(110);
     expect((await store.listEvents({ kind: "deposit" }))[0]).toMatchObject({
       account: "alice.testnet",
       blockHeight: 103,
     });
+  });
+});
+
+describe("Scanner sparse launch", () => {
+  it("asks again for a pool launched inside the range", async () => {
+    const NEW = "pepn.factory.nolossmeme.testnet";
+    const launchLog = `EVENT_JSON:${JSON.stringify({ standard: "nolossmeme", version: "1.0.0", event: "launch", data: [{ slug: "pepn", account_id: NEW, creator: "bob.testnet", symbol: "PEPN", name: "P" }] })}`;
+    const launch = fakeBlock(102, true);
+    const r = launch.shards[0]!.receipt_execution_outcomes[0]!;
+    r.receipt.receiver_id = FACTORY;
+    r.execution_outcome.outcome.executor_id = FACTORY;
+    r.execution_outcome.outcome.logs = [launchLog];
+    const asked: string[][] = [];
+    const txApi = {
+      blocks: (accounts: string[]) => {
+        asked.push(accounts);
+        return Promise.resolve(accounts.includes(FACTORY) ? [launch] : []);
+      },
+    } as unknown as TxApi;
+    const client = { getMemes: () => Promise.resolve([]) } as never;
+    const store = new Store(await openDb(":memory:"));
+    const scanner = new Scanner({} as NearData, store, client, txApi, FACTORY, {
+      startBlock: 100,
+      concurrency: 1,
+      sparse: true,
+    });
+    await scanner.indexRange(100, 110);
+    expect(asked).toEqual([[FACTORY], [NEW]]);
   });
 });
 
@@ -133,7 +155,7 @@ describe("Scanner.run", () => {
     const client = { getMemes: () => Promise.resolve([]) } as never;
     const ref: { scanner?: Scanner } = {};
     const txApi = {
-      touchedHeights: () => {
+      blocks: () => {
         ref.scanner!.stop();
         return Promise.resolve([]);
       },

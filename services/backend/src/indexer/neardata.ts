@@ -75,12 +75,16 @@ export class RateLimiter {
 export class NearData {
   private readonly limiter: RateLimiter;
 
+  /** When set, the head comes from this JSON-RPC so polling it doesn't spend the archive's quota. */
+  private readonly rpcUrl: string | undefined;
+
   constructor(
     private readonly baseUrl: string,
-    opts: { rps?: number; fetchImpl?: typeof fetch } = {},
+    opts: { rps?: number; fetchImpl?: typeof fetch; rpcUrl?: string } = {},
   ) {
     this.limiter = new RateLimiter(opts.rps ?? 3);
     this.fetchImpl = opts.fetchImpl ?? fetch;
+    this.rpcUrl = opts.rpcUrl;
   }
   private readonly fetchImpl: typeof fetch;
 
@@ -100,10 +104,29 @@ export class NearData {
   }
 
   async lastFinalHeight(): Promise<number> {
+    if (this.rpcUrl) return this.rpcFinalHeight(this.rpcUrl);
     const res = await this.get("/v0/last_block/final");
     if (!res.ok) throw new Error(`last_block: HTTP ${res.status}`);
     const b = (await res.json()) as LakeBlock;
     return b.block.header.height;
+  }
+
+  private async rpcFinalHeight(url: string): Promise<number> {
+    const res = await this.fetchImpl(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: "head",
+        method: "block",
+        params: { finality: "final" },
+      }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (res.status === 429) throw new RateLimited(2_000);
+    const body = (await res.json()) as { result?: { header: { height: number } } };
+    if (!body.result) throw new Error(`head: HTTP ${res.status}`);
+    return body.result.header.height;
   }
 
   /** Throws `BlockNotFound` for skipped heights (the chain has gaps), `RateLimited` on 429, other errors for transport problems. */

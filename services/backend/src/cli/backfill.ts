@@ -14,7 +14,7 @@ const cfg = loadConfig();
 setLogLevel(cfg.LOG_LEVEL);
 const db = await openDb(cfg.DATABASE_URL, cfg.DATABASE_AUTH_TOKEN);
 const store = new Store(db);
-const data = new NearData(cfg.neardataUrl, { rps: cfg.NEARDATA_RPS });
+const data = new NearData(cfg.neardataUrl, { rps: cfg.NEARDATA_RPS, rpcUrl: cfg.rpcUrl });
 const scanner = new Scanner(
   data,
   store,

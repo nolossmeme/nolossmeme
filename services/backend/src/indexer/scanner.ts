@@ -3,7 +3,7 @@ import type { NoLossMemeClient } from "@nolossmeme/sdk";
 
 import type { Store } from "../db/store.js";
 import { log } from "../log.js";
-import { BlockNotFound, RateLimited, type NearData } from "./neardata.js";
+import { BlockNotFound, RateLimited, type LakeBlock, type NearData } from "./neardata.js";
 import { launchedPools, parseBlock, type Watch } from "./parse.js";
 import type { TxApi } from "./txapi.js";
 
@@ -11,7 +11,7 @@ export interface ScannerOptions {
   startBlock: number;
   /** Parallel full-block fetches from the archive (rate limited separately). */
   concurrency: number;
-  /** Ask the transactions API which blocks touched our accounts and fetch only those. */
+  /** Read only our accounts' receipts from the transactions API instead of every block. */
   sparse?: boolean;
   /** Re-read the factory registry every N blocks (new pools may appear through the factory). */
   registryRefreshEvery?: number;
@@ -45,9 +45,8 @@ export class Scanner {
     log.info("registry refreshed", { pools: this.watch.pools.size });
   }
 
-  /** Index a single block. Returns the number of events stored. */
-  async indexBlock(height: number): Promise<number> {
-    const block = await this.data.block(height);
+  /** Store one block's events; a launch adds the new pool to the watch list. */
+  private async storeBlock(block: LakeBlock): Promise<number> {
     const events = parseBlock(block, this.watch);
     for (const pool of launchedPools(events)) this.watch.pools.add(pool);
     const stored = await this.store.insertEvents(events);
@@ -55,17 +54,34 @@ export class Scanner {
     return stored;
   }
 
-  /** Heights in [from, to] that touched a watched account (or every height when not sparse). */
-  async candidateHeights(from: number, to: number): Promise<number[]> {
-    if (!this.opts.sparse) return Array.from({ length: to - from + 1 }, (_, i) => from + i);
-    const accounts = [this.watch.factory, ...this.watch.pools];
+  /** Index a single block from the archive. Returns the number of events stored. */
+  async indexBlock(height: number): Promise<number> {
+    return this.storeBlock(await this.data.block(height));
+  }
+
+  /** Receipts touching `accounts` in [from, to], from the transactions API, with retries. */
+  private async txBlocks(accounts: string[], from: number, to: number): Promise<LakeBlock[]> {
     for (let attempt = 0; ; attempt++) {
       try {
-        return await this.txApi.touchedHeights(accounts, from, to);
+        return await this.txApi.blocks(accounts, from, to);
       } catch (e) {
         await this.txApiBackoff(e, attempt, from);
       }
     }
+  }
+
+  /** Sparse: only the receipts that touched our accounts; the archive is never read. */
+  private async indexSparse(from: number, to: number): Promise<number> {
+    const before = new Set(this.watch.pools);
+    let stored = 0;
+    for (const b of await this.txBlocks([this.watch.factory, ...before], from, to))
+      stored += await this.storeBlock(b);
+    // A pool launched in this range may already have activity in it.
+    const launched = [...this.watch.pools].filter((p) => !before.has(p));
+    if (launched.length > 0)
+      for (const b of await this.txBlocks(launched, from, to)) stored += await this.storeBlock(b);
+    await this.store.setCursor(to);
+    return stored;
   }
 
   /** Waits before the next try; rethrows once a non-throttle error has failed 20 times. */
@@ -82,10 +98,12 @@ export class Scanner {
     return sleep(Math.min(10_000, 300 * 2 ** attempt));
   }
 
-  /** Index [from, to] inclusive with bounded concurrency; skips heights the chain never produced. */
+  /** Index [from, to] inclusive. Full mode reads every block from the archive with bounded
+   *  concurrency and skips heights the chain never produced. */
   async indexRange(from: number, to: number): Promise<number> {
+    if (this.opts.sparse) return this.indexSparse(from, to);
     let stored = 0;
-    const candidates = await this.candidateHeights(from, to);
+    const candidates = Array.from({ length: to - from + 1 }, (_, i) => from + i);
     for (let i = 0; i < candidates.length; i += this.opts.concurrency) {
       const heights = candidates.slice(i, i + this.opts.concurrency);
       const results = await Promise.all(

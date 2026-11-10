@@ -82,7 +82,7 @@ async function main(): Promise<void> {
   const client = new NoLossMemeClient(cfg.network);
   // Jobs read and write over their own endpoint; see JOBS_RPC_URL.
   const jobsClient = new NoLossMemeClient({ ...cfg.network, rpcUrl: cfg.jobsRpcUrl });
-  const data = new NearData(cfg.neardataUrl, { rps: cfg.NEARDATA_RPS });
+  const data = new NearData(cfg.neardataUrl, { rps: cfg.NEARDATA_RPS, rpcUrl: cfg.rpcUrl });
   const roles = parseRoles(cfg.ROLE);
 
   let head: number | null = null;

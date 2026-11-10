@@ -121,9 +121,10 @@ export class Scanner {
     log.info("scanner starting", { from: next });
     while (!this.stopped) {
       // The transactions API trails the chain by a few seconds; stay behind it.
-      const head = (await this.data.lastFinalHeight()) - (this.opts.sparse ? HEAD_LAG_BLOCKS : 0);
-      if (next > head) {
-        await sleep(this.opts.idleMs ?? 1_500);
+      const head = (await this.headHeight()) - (this.opts.sparse ? HEAD_LAG_BLOCKS : 0);
+      // Batch a few blocks so following the head costs a handful of calls per range.
+      if (head - next < MIN_BATCH_BLOCKS) {
+        await sleep(this.opts.idleMs ?? 3_000);
         continue;
       }
       const to = Math.min(head, next + 199);
@@ -134,7 +135,21 @@ export class Scanner {
       const every = this.opts.registryRefreshEvery ?? 1_000;
       if (to - this.lastRegistryRefresh >= every) {
         this.lastRegistryRefresh = to;
-        await this.refreshRegistry();
+        await this.refreshRegistry().catch((e: unknown) =>
+          log.warn("registry refresh failed", { error: String(e).slice(0, 120) }),
+        );
+      }
+    }
+  }
+
+  /** Final head height; waits out archive throttling and transient errors instead of crashing. */
+  private async headHeight(): Promise<number> {
+    for (;;) {
+      try {
+        return await this.data.lastFinalHeight();
+      } catch (e) {
+        log.debug("head lookup failed", { error: String(e).slice(0, 120) });
+        await sleep(e instanceof RateLimited ? e.retryAfterMs : 3_000);
       }
     }
   }
@@ -146,4 +161,5 @@ export class Scanner {
 
 /** ~20 s at testnet block times. */
 const HEAD_LAG_BLOCKS = 30;
+const MIN_BATCH_BLOCKS = 15;
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));

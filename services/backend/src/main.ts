@@ -8,8 +8,8 @@ import { loadConfig, type Config } from "./config.js";
 import { openDb, type Db } from "./db/client.js";
 import { Store } from "./db/store.js";
 import { NearData } from "./indexer/neardata.js";
-import { Rpc } from "./indexer/rpc.js";
 import { Scanner } from "./indexer/scanner.js";
+import { TxApi } from "./indexer/txapi.js";
 import { startKeeperJob } from "./jobs/keeper.js";
 import { startSnapshotJob } from "./jobs/snapshots.js";
 import { startSponsorJob } from "./jobs/sponsor.js";
@@ -94,19 +94,11 @@ async function main(): Promise<void> {
   };
   const headTracker = setInterval(trackHead, 10_000);
 
-  const scanner = new Scanner(
-    data,
-    store,
-    client,
-    new Rpc(cfg.rpcUrls, { rps: cfg.RPC_RPS }),
-    cfg.network.factory,
-    {
-      startBlock: cfg.START_BLOCK,
-      concurrency: cfg.SCAN_CONCURRENCY,
-      sparse: cfg.SPARSE_SCAN,
-      rpcConcurrency: cfg.RPC_CONCURRENCY,
-    },
-  );
+  const scanner = new Scanner(data, store, client, new TxApi(cfg.txApiUrl), cfg.network.factory, {
+    startBlock: cfg.START_BLOCK,
+    concurrency: cfg.SCAN_CONCURRENCY,
+    sparse: cfg.SPARSE_SCAN,
+  });
   const stops = roles.has("jobs") ? startJobs(cfg, store, jobsClient, () => head) : [noop];
 
   const faucet = await maybeFaucet(cfg, db);

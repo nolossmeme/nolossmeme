@@ -4,16 +4,15 @@ import type { NoLossMemeClient } from "@nolossmeme/sdk";
 import type { Store } from "../db/store.js";
 import { log } from "../log.js";
 import { BlockNotFound, RateLimited, type NearData } from "./neardata.js";
-import { UnknownBlock, type Rpc } from "./rpc.js";
 import { launchedPools, parseBlock, type Watch } from "./parse.js";
+import type { TxApi } from "./txapi.js";
 
 export interface ScannerOptions {
   startBlock: number;
   /** Parallel full-block fetches from the archive (rate limited separately). */
   concurrency: number;
-  /** Ask the RPC which accounts a block touched and fetch only blocks that touched ours. */
+  /** Ask the transactions API which blocks touched our accounts and fetch only those. */
   sparse?: boolean;
-  rpcConcurrency?: number;
   /** Re-read the factory registry every N blocks (new pools may appear through the factory). */
   registryRefreshEvery?: number;
   /** Polling delay when caught up with the head. */
@@ -24,13 +23,13 @@ export class Scanner {
   private watch: Watch;
   private stopped = false;
   private lastRegistryRefresh = 0;
-  private rpcThrottled = 0;
+  private throttled = 0;
 
   constructor(
     private readonly data: NearData,
     private readonly store: Store,
     private readonly client: NoLossMemeClient,
-    private readonly rpc: Rpc,
+    private readonly txApi: TxApi,
     factory: string,
     private readonly opts: ScannerOptions,
   ) {
@@ -56,59 +55,34 @@ export class Scanner {
     return stored;
   }
 
-  /** Index [from, to] inclusive with bounded concurrency; skips heights the chain never produced. */
-  /** Whether block `h` touched the factory or a pool; retries transient RPC errors. */
-  private async touchesWatched(h: number): Promise<boolean> {
+  /** Heights in [from, to] that touched a watched account (or every height when not sparse). */
+  async candidateHeights(from: number, to: number): Promise<number[]> {
+    if (!this.opts.sparse) return Array.from({ length: to - from + 1 }, (_, i) => from + i);
+    const accounts = [this.watch.factory, ...this.watch.pools];
     for (let attempt = 0; ; attempt++) {
       try {
-        const accounts = await this.rpc.touchedAccounts(h);
-        return [...accounts].some((a) => this.isWatched(a));
+        return await this.txApi.touchedHeights(accounts, from, to);
       } catch (e) {
-        if (e instanceof UnknownBlock) return false;
-        if (e instanceof RateLimited) {
-          this.noteThrottle(h, e.retryAfterMs);
-          // spread retries without a PRNG: offset by height
-          await sleep(e.retryAfterMs + (h % 5) * 100);
-          continue;
-        }
-        if (attempt >= 20) throw e;
-        if (attempt % 5 === 4)
-          log.warn("rpc retry", { height: h, attempt, error: String(e).slice(0, 120) });
-        await sleep(Math.min(10_000, 300 * 2 ** attempt));
+        await this.txApiBackoff(e, attempt, from);
       }
     }
   }
 
-  private isWatched(account: string): boolean {
-    return (
-      account === this.watch.factory ||
-      this.watch.pools.has(account) ||
-      account.endsWith(`.${this.watch.factory}`)
-    );
-  }
-
-  private noteThrottle(height: number, waitMs: number): void {
-    this.rpcThrottled += 1;
-    if (this.rpcThrottled % 25 === 1)
-      log.warn("rpc rate limited", { height, count: this.rpcThrottled, waitMs });
-  }
-
-  /** Heights in [from, to] whose block touched a watched account (or every height when not sparse). */
-  async candidateHeights(from: number, to: number): Promise<number[]> {
-    const all = Array.from({ length: to - from + 1 }, (_, i) => from + i);
-    if (!this.opts.sparse) return all;
-    const out: number[] = [];
-    const width = this.opts.rpcConcurrency ?? 8;
-    for (let i = 0; i < all.length; i += width) {
-      const slice = all.slice(i, i + width);
-      const touched = await Promise.all(slice.map((h) => this.touchesWatched(h)));
-      slice.forEach((h, j) => touched[j] && out.push(h));
-      if (i > 0 && i % 1_000 < width)
-        log.info("prefilter progress", { height: slice[0], scanned: i, candidates: out.length });
+  /** Waits before the next try; rethrows once a non-throttle error has failed 20 times. */
+  private async txApiBackoff(e: unknown, attempt: number, from: number): Promise<void> {
+    if (e instanceof RateLimited) {
+      this.throttled += 1;
+      if (this.throttled % 25 === 1)
+        log.warn("tx api rate limited", { from, count: this.throttled });
+      return sleep(e.retryAfterMs);
     }
-    return out;
+    if (attempt >= 20) throw e;
+    if (attempt % 5 === 4)
+      log.warn("tx api retry", { from, attempt, error: String(e).slice(0, 120) });
+    return sleep(Math.min(10_000, 300 * 2 ** attempt));
   }
 
+  /** Index [from, to] inclusive with bounded concurrency; skips heights the chain never produced. */
   async indexRange(from: number, to: number): Promise<number> {
     let stored = 0;
     const candidates = await this.candidateHeights(from, to);
@@ -146,7 +120,8 @@ export class Scanner {
     let next = ((await this.store.getCursor()) ?? this.opts.startBlock - 1) + 1;
     log.info("scanner starting", { from: next });
     while (!this.stopped) {
-      const head = await this.data.lastFinalHeight();
+      // The transactions API trails the chain by a few seconds; stay behind it.
+      const head = (await this.data.lastFinalHeight()) - (this.opts.sparse ? HEAD_LAG_BLOCKS : 0);
       if (next > head) {
         await sleep(this.opts.idleMs ?? 1_500);
         continue;
@@ -169,4 +144,6 @@ export class Scanner {
   }
 }
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+/** ~20 s at testnet block times. */
+const HEAD_LAG_BLOCKS = 30;
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));

@@ -21,6 +21,11 @@ const steps = [
   ],
   [
     "05",
+    "Hit the target",
+    "The community needs enough check-ins each epoch. Hit it and the streak grows; miss it and the community share burns and the streak resets.",
+  ],
+  [
+    "06",
     "Redeem or ride",
     "Burn tokens for treasury stNEAR at the floor, or hold the meme and let the floor climb.",
   ],

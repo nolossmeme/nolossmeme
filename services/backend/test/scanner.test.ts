@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { openDb } from "../src/db/client.js";
 import { Store } from "../src/db/store.js";
 import type { LakeBlock, NearData } from "../src/indexer/neardata.js";
-import { BlockNotFound } from "../src/indexer/neardata.js";
+import { BlockNotFound, RateLimited } from "../src/indexer/neardata.js";
 import { Scanner } from "../src/indexer/scanner.js";
 import type { TxApi } from "../src/indexer/txapi.js";
 
@@ -118,5 +118,34 @@ describe("Scanner sparse mode", () => {
       account: "alice.testnet",
       blockHeight: 103,
     });
+  });
+});
+
+describe("Scanner.run", () => {
+  it("waits out a throttled head lookup instead of crashing", async () => {
+    let headCalls = 0;
+    const data = {
+      lastFinalHeight: () =>
+        ++headCalls === 1 ? Promise.reject(new RateLimited(1)) : Promise.resolve(160),
+      block: () => Promise.reject(new Error("no candidates expected")),
+    } as unknown as NearData;
+    const store = new Store(await openDb(":memory:"));
+    const client = { getMemes: () => Promise.resolve([]) } as never;
+    const ref: { scanner?: Scanner } = {};
+    const txApi = {
+      touchedHeights: () => {
+        ref.scanner!.stop();
+        return Promise.resolve([]);
+      },
+    } as unknown as TxApi;
+    const scanner = new Scanner(data, store, client, txApi, FACTORY, {
+      startBlock: 100,
+      concurrency: 1,
+      sparse: true,
+    });
+    ref.scanner = scanner;
+    await scanner.run();
+    expect(headCalls).toBe(2);
+    expect(await store.getCursor()).toBe(130); // head 160 minus the 30-block lag
   });
 });

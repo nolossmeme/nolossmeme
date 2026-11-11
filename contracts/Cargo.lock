@@ -2115,9 +2115,9 @@ dependencies = [
 
 [[package]]
 name = "near-contract-standards"
-version = "5.30.0"
+version = "5.30.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea737f770ef1dc8f55325ed2200c554f26c14d65e36c4c1342f6878365f1fd11"
+checksum = "5172408539a27bda9a5bb611e1dcdb0825ee26296bf37ccec9299c7f90357834"
 dependencies = [
  "near-sdk",
 ]

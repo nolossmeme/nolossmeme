@@ -87,7 +87,7 @@ Prerequisites: Rust (the `contracts/rust-toolchain.toml` pins 1.96), [`cargo-nea
 | [`contracts/integration-tests`](contracts/integration-tests) | near-sandbox end-to-end tests                                                                    | near-sandbox 0.4, near-api-rs                |
 | [`packages/sdk`](packages/sdk)                               | Typed RPC client, wallet-agnostic transaction builders, contract math mirrors                    | TypeScript, near-api-js 7                    |
 | [`apps/web`](apps/web)                                       | Memes list, pool page, launch form with 60-day projection, how-it-works                          | Vite, React 19, Tailwind 4, near-connect     |
-| [`services/backend`](services/backend)                       | Indexer (block scanner over FastNEAR's archive), REST API, snapshot job, optional keeper worker  | TypeScript, Hono, libsql                     |
+| [`services/backend`](services/backend)                       | Indexer (FastNEAR transactions API), REST API, snapshot, keeper and sponsor jobs, faucet         | TypeScript, Hono, libsql                     |
 | [`tools/keeper`](tools/keeper)                               | Calls `draw` where due; cron in `.github/workflows/keeper.yml`                                   | TypeScript                                   |
 | [`tools/sim`](tools/sim)                                     | Tokenomics simulation and charts                                                                 | Python                                       |
 

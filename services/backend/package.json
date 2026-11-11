@@ -17,7 +17,7 @@
     "@hono/node-server": "^2.1.6",
     "@libsql/client": "^0.18.0",
     "@nolossmeme/sdk": "workspace:*",
-    "hono": "^4.13.16",
+    "hono": "^4.13.17",
     "near-api-js": "^7.4.0",
     "zod": "^4.6.7"
   },

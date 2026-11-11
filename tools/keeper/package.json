@@ -16,12 +16,12 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/node": "^24.9.1",
+    "@types/node": "^26.6.6",
     "eslint": "^10.14.0",
     "eslint-plugin-sonarjs": "^4.2.2",
     "tsx": "^4.20.6",
-    "typescript": "^5.9.3",
+    "typescript": "^7.0.2",
     "typescript-eslint": "^8.72.1",
-    "vitest": "^3.2.4"
+    "vitest": "^5.1.0"
   }
 }

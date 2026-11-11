@@ -7,6 +7,11 @@ updates:
     groups:
       dev-dependencies:
         dependency-type: development
+    # Majors (TypeScript 7, Vite 8, Vitest 5, ...) wait until after the hackathon deadline
+    # (14 Nov 2026); drop this block then and take them one at a time.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     labels: ["type: chore", "area: ci"]
   - package-ecosystem: cargo
     directory: /contracts

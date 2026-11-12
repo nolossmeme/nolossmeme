@@ -24,13 +24,14 @@ struct Ticket {
 impl Contract {
     /// Anyone may call once the epoch is over.
     pub fn draw(&mut self) -> Promise {
-        require!(!self.draw_in_progress, "draw already in progress");
+        require!(!self.draw_locked(), "draw already in progress");
         require!(self.in_flight == 0, "withdrawals in flight, retry");
         require!(
             env::block_timestamp() >= self.epoch_start + self.params.epoch_length_ns.0,
             "epoch not over"
         );
         self.draw_in_progress = true;
+        self.draw_started_at = env::block_timestamp();
         self.price_promise().then(
             Self::ext(env::current_account_id())
                 .with_static_gas(GAS_CB_DRAW)
@@ -183,8 +184,12 @@ impl Contract {
         let winner = Self::pick_winner(tickets, total_weight, seed);
         let jackpot = mul_div(emission, u128::from(self.params.jackpot_bps), BPS);
         let mut minted = 0u128;
+        // One ft_mint event for the whole draw: a log per check-in would hit NEAR's 100-log
+        // limit and fail the callback.
+        let mut mints: Vec<(AccountId, u128, &'static str)> = Vec::new();
         if let Some(w) = &winner {
-            self.mint(w, jackpot, "jackpot");
+            self.credit(w, jackpot);
+            mints.push((w.clone(), jackpot, "jackpot"));
             minted += jackpot;
             if let Some(mut d) = self.depositors.get(w).cloned() {
                 d.total_won = U128(d.total_won.0 + jackpot);
@@ -193,15 +198,21 @@ impl Contract {
         }
         // A missed target burns the community share: it is never minted.
         let community = emission - jackpot;
-        if !target_hit {
-            return (winner, jackpot, 0, minted, community);
-        }
-        let each = community / u128::from(checkins);
+        let each = if target_hit {
+            community / u128::from(checkins)
+        } else {
+            0
+        };
         if each > 0 {
             for t in tickets.iter().filter(|t| t.checked_in) {
-                self.mint(&t.account, each, "check-in");
+                self.credit(&t.account, each);
+                mints.push((t.account.clone(), each, "check-in"));
                 minted += each;
             }
+        }
+        Self::emit_mints(&mints);
+        if !target_hit {
+            return (winner, jackpot, 0, minted, community);
         }
         (winner, jackpot, each, minted, 0)
     }
@@ -215,7 +226,8 @@ impl Contract {
         self.checkins_this_epoch = 0;
     }
 
-    pub(crate) fn mint(&mut self, to: &AccountId, amount: u128, memo: &str) {
+    /// Add freshly minted MEME to `to` without emitting an event (see [`Self::emit_mints`]).
+    fn credit(&mut self, to: &AccountId, amount: u128) {
         if amount == 0 {
             return;
         }
@@ -223,12 +235,21 @@ impl Contract {
             self.token.internal_register_account(to);
         }
         self.token.internal_deposit(to, amount);
-        FtMint {
-            owner_id: to,
-            amount: U128(amount),
-            memo: Some(memo),
+    }
+
+    fn emit_mints(mints: &[(AccountId, u128, &'static str)]) {
+        let events: Vec<FtMint<'_>> = mints
+            .iter()
+            .filter(|(_, amount, _)| *amount > 0)
+            .map(|(owner_id, amount, memo)| FtMint {
+                owner_id,
+                amount: U128(*amount),
+                memo: Some(memo),
+            })
+            .collect();
+        if !events.is_empty() {
+            FtMint::emit_many(&events);
         }
-        .emit();
     }
 
     pub(crate) fn floor_price(&self) -> u128 {

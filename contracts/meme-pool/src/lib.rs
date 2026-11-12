@@ -65,10 +65,20 @@ pub struct Contract {
     depositors: IterableMap<AccountId, Depositor>,
     draws: Vector<Draw>,
     draw_in_progress: bool,
+    /// When the current (or last) draw started; see [`DRAW_LOCK_TIMEOUT_NS`].
+    draw_started_at: u64,
     /// Withdraw / redeem promise chains in flight; draws wait for zero.
     in_flight: u32,
     /// NEAR owed to accounts whose `withdraw_near` payout could not be pulled; see `claim_pending`.
     pending_payouts: LookupMap<AccountId, u128>,
+}
+
+impl Contract {
+    /// True while a draw is settling. A lock older than [`DRAW_LOCK_TIMEOUT_NS`] is stale.
+    pub(crate) fn draw_locked(&self) -> bool {
+        self.draw_in_progress
+            && env::block_timestamp() < self.draw_started_at.saturating_add(DRAW_LOCK_TIMEOUT_NS)
+    }
 }
 
 #[near]
@@ -88,6 +98,11 @@ impl Contract {
         );
         require!(params.halving_every >= 1, "halving_every must be >= 1");
         require!(params.initial_emission.0 > 0, "emission must be > 0");
+        // Halving emission sums to < 2 × initial × halving_every; keep that far from u128::MAX.
+        require!(
+            params.initial_emission.0 <= u128::MAX / 4 / u128::from(params.halving_every),
+            "emission too large"
+        );
         let metadata = FungibleTokenMetadata {
             spec: FT_METADATA_SPEC.to_string(),
             name,
@@ -118,6 +133,7 @@ impl Contract {
             depositors: IterableMap::new(StorageKey::Depositors),
             draws: Vector::new(StorageKey::Draws),
             draw_in_progress: false,
+            draw_started_at: 0,
             in_flight: 0,
             pending_payouts: LookupMap::new(StorageKey::Pending),
         }

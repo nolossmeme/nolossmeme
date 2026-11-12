@@ -35,7 +35,7 @@ impl Contract {
             community_streak: self.community_streak,
             best_streak: self.best_streak,
             draws: u64::from(self.draws.len()),
-            draw_in_progress: self.draw_in_progress,
+            draw_in_progress: self.draw_locked(),
             in_flight: self.in_flight,
             current_time: U64(env::block_timestamp()),
         }

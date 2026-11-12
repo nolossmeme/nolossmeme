@@ -11,11 +11,15 @@ export function usePoolState(pool: string | undefined) {
   });
 }
 
-export function useDraws(pool: string | undefined) {
+/** The newest `DRAW_WINDOW` draws (the view pages from the oldest). */
+export const DRAW_WINDOW = 200;
+
+export function useDraws(pool: string | undefined, total: number | undefined) {
+  const from = Math.max(0, (total ?? 0) - DRAW_WINDOW);
   return useQuery({
-    queryKey: ["pool", pool, "draws"],
-    queryFn: () => client.getDraws(pool ?? "", 0, 200),
-    enabled: Boolean(pool),
+    queryKey: ["pool", pool, "draws", from],
+    queryFn: () => client.getDraws(pool ?? "", from, DRAW_WINDOW),
+    enabled: Boolean(pool) && total !== undefined,
     refetchInterval: 30_000,
   });
 }

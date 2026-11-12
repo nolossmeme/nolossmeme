@@ -43,13 +43,13 @@ export function MemePage() {
   const { data: meme, isLoading } = useMeme(slug);
   const pool = meme?.account_id;
   const { data: state } = usePoolState(pool);
-  const { data: draws } = useDraws(pool);
+  const { data: draws } = useDraws(pool, state?.draws);
   const { data: depositors } = useDepositors(pool);
   const tx = useTx();
   const { data: me } = useMyPosition(pool, tx.signedAccountId || undefined);
   const { data: activity } = usePoolActivity(pool);
   const { data: mine } = useAccountActivity(tx.signedAccountId || undefined);
-  const myEvents = (mine ?? []).filter((e) => e.contract === pool).slice(0, 8);
+  const myEvents = (mine ?? []).filter((e) => e.contract === pool);
   const { data: series } = usePoolSeries(pool);
 
   if (isLoading) return <p className="text-muted">Loading…</p>;

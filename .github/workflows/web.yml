@@ -29,6 +29,9 @@ concurrency:
   group: web-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   check:
     name: format, lint, test, build

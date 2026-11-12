@@ -14,6 +14,9 @@ concurrency:
   group: keeper
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   draw:
     name: draw due epochs

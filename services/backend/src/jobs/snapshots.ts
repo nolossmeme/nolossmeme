@@ -30,7 +30,9 @@ export function startSnapshotJob(
   head: () => number | null,
 ): () => void {
   const tick = () =>
-    void takeSnapshots(store, client, head()).then((n) => log.debug("snapshots taken", { n }));
+    void takeSnapshots(store, client, head())
+      .then((n) => log.debug("snapshots taken", { n }))
+      .catch((e: unknown) => log.warn("snapshot tick failed", { error: String(e) }));
   tick();
   const id = setInterval(tick, intervalMs);
   return () => clearInterval(id);

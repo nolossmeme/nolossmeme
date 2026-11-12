@@ -6,6 +6,9 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+permissions:
+  contents: read
+
 jobs:
   scan:
     name: SonarQube Cloud scan
@@ -21,5 +24,5 @@ jobs:
         if: env.SONAR_TOKEN != ''
         with:
           fetch-depth: 0
-      - uses: SonarSource/sonarqube-scan-action@v8
+      - uses: SonarSource/sonarqube-scan-action@e805d875275f728fac1885b413934be6d7c63f65 # v8.4.1
         if: env.SONAR_TOKEN != ''

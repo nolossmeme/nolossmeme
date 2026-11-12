@@ -1,4 +1,7 @@
 # api.nolossmeme.fun -> backend container (indexer API, faucet) on 127.0.0.1:3182.
+
+# Faucet claims: a few per minute per IP on top of Turnstile and the backend cooldown.
+limit_req_zone $binary_remote_addr zone=nlm_faucet:1m rate=6r/m;
 server {
     listen 80;
     listen [::]:80;
@@ -22,6 +25,16 @@ server {
     server_tokens off;
     client_max_body_size 64k;
     add_header Strict-Transport-Security "max-age=31536000" always;
+    location = /faucet {
+        limit_req zone=nlm_faucet burst=3 nodelay;
+        limit_req_status 429;
+        proxy_pass http://127.0.0.1:3182;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_read_timeout 30s;
+    }
     location / {
         proxy_pass http://127.0.0.1:3182;
         proxy_http_version 1.1;

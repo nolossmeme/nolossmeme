@@ -1,0 +1,33 @@
+{
+  "name": "@nolossmeme/video",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Remotion source for the hackathon demo video (voice by ElevenLabs)",
+  "type": "module",
+  "scripts": {
+    "capture": "tsx scripts/capture.ts",
+    "voice": "tsx scripts/voice.ts",
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts Demo out/demo-raw.mp4 --codec h264 --crf 20 && ffmpeg -v error -y -i out/demo-raw.mp4 -c:v copy -af loudnorm=I=-14:TP=-1.5:LRA=11 -ar 48000 -c:a aac -b:a 192k ../../docs/demo.mp4",
+    "lint": "eslint src scripts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.543",
+    "@remotion/google-fonts": "4.0.543",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "remotion": "4.0.543"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.19.2",
+    "@types/react": "^19.3.0",
+    "eslint": "^10.14.0",
+    "eslint-plugin-sonarjs": "^4.2.2",
+    "playwright": "^1.65.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.72.1"
+  }
+}

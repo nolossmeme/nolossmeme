@@ -78,7 +78,10 @@ export class TxApi {
         "/v0/transactions",
         { tx_hashes: list.slice(i, i + BATCH) },
       );
-      for (const t of transactions) if (t) addReceipts(byHeight, t, from, to);
+      // A null is a tx the API has not indexed yet; fail the range so the caller retries it
+      // instead of moving the cursor past its receipts.
+      if (transactions.some((t) => !t)) throw new Error("tx api: transaction not indexed yet");
+      for (const t of transactions) addReceipts(byHeight, t!, from, to);
     }
     return [...byHeight.values()].sort((a, b) => a.block.header.height - b.block.header.height);
   }

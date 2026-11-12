@@ -24,7 +24,10 @@ impl Contract {
             .get(&account)
             .cloned()
             .expect("deposit first");
-        require!(d.principal.0 > 0, "deposit first");
+        require!(
+            d.principal.0 >= self.params.min_deposit.0,
+            "deposit at least min_deposit to check in"
+        );
         require!(
             d.last_checkin_epoch != Some(self.epoch_index),
             "already checked in this epoch"

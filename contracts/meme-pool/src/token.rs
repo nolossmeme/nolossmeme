@@ -121,6 +121,8 @@ impl StorageManagement for Contract {
         };
         let principal = self.depositors.get(&account).map_or(0, |d| d.principal.0);
         require!(principal == 0, "withdraw principal first");
+        // A failing withdraw or redeem rolls back onto this account; keep it registered meanwhile.
+        require!(self.in_flight == 0, "withdrawals in flight, retry");
         require!(
             balance == 0 || force == Some(true),
             "redeem your MEME first, or pass force=true to burn it"

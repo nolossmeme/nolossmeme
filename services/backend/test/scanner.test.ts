@@ -83,7 +83,7 @@ describe("Scanner sparse mode", () => {
       },
     } as unknown as TxApi;
     const client = {
-      getMemes: () =>
+      getAllMemes: () =>
         Promise.resolve([
           {
             slug: "dogn",
@@ -131,7 +131,7 @@ describe("Scanner sparse launch", () => {
         return Promise.resolve(accounts.includes(FACTORY) ? [launch] : []);
       },
     } as unknown as TxApi;
-    const client = { getMemes: () => Promise.resolve([]) } as never;
+    const client = { getAllMemes: () => Promise.resolve([]) } as never;
     const store = new Store(await openDb(":memory:"));
     const scanner = new Scanner({} as NearData, store, client, txApi, FACTORY, {
       startBlock: 100,
@@ -152,7 +152,7 @@ describe("Scanner.run", () => {
       block: () => Promise.reject(new Error("no candidates expected")),
     } as unknown as NearData;
     const store = new Store(await openDb(":memory:"));
-    const client = { getMemes: () => Promise.resolve([]) } as never;
+    const client = { getAllMemes: () => Promise.resolve([]) } as never;
     const ref: { scanner?: Scanner } = {};
     const txApi = {
       blocks: () => {

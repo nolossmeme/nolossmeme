@@ -37,7 +37,7 @@ export class Scanner {
   }
 
   async refreshRegistry(): Promise<void> {
-    const memes = await this.client.getMemes(0, 200);
+    const memes = await this.client.getAllMemes();
     for (const m of memes) {
       this.watch.pools.add(m.account_id);
       await this.store.upsertPool(m);

@@ -38,6 +38,11 @@ export class NoLossMemeClient {
     return this.view(this.config.factory, "get_memes", { from_index: fromIndex, limit });
   }
 
+  /** Every meme, paged through `get_memes`. */
+  getAllMemes(): Promise<MemeInfo[]> {
+    return pageAll((from, limit) => this.getMemes(from, limit), 50);
+  }
+
   getMeme(slug: string): Promise<MemeInfo | null> {
     return this.view(this.config.factory, "get_meme", { slug });
   }
@@ -72,6 +77,11 @@ export class NoLossMemeClient {
     return this.view(pool, "get_depositors", { from_index: fromIndex, limit });
   }
 
+  /** Every depositor, paged through `get_depositors` (each row is a full account view). */
+  getAllDepositors(pool: string): Promise<[string, AccountView][]> {
+    return pageAll((from, limit) => this.getDepositors(pool, from, limit), 100);
+  }
+
   getMetadata(pool: string): Promise<FtMetadata> {
     return this.view(pool, "ft_metadata");
   }
@@ -100,4 +110,19 @@ export class NoLossMemeClient {
       await this.view<string>(this.config.metaPool, "ft_balance_of", { account_id: accountId }),
     );
   }
+}
+
+/** Calls a paged view until it returns a short page. */
+export async function pageAll<T>(
+  page: (from: number, limit: number) => Promise<T[]>,
+  limit: number,
+  max = 10_000,
+): Promise<T[]> {
+  const all: T[] = [];
+  while (all.length < max) {
+    const rows = await page(all.length, limit);
+    all.push(...rows);
+    if (rows.length < limit) break;
+  }
+  return all;
 }

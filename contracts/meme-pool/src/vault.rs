@@ -298,13 +298,19 @@ impl Contract {
     /// Optimistically remove principal and count the chain as in flight.
     fn begin_withdraw(&mut self, amount: Option<U128>) -> (AccountId, u128) {
         require!(
-            !self.draw_in_progress,
+            !self.draw_locked(),
             "draw in progress, retry in a few seconds"
         );
         let account = env::predecessor_account_id();
         let mut d = self.depositors.get(&account).cloned().expect("no deposit");
         let amount = amount.map_or(d.principal.0, |a| a.0);
         require!(amount > 0 && amount <= d.principal.0, "invalid amount");
+        // Dust positions would let one person fake many check-ins for the community target.
+        let left = d.principal.0 - amount;
+        require!(
+            left == 0 || left >= self.params.min_deposit.0,
+            "leave at least min_deposit, or withdraw everything"
+        );
         Self::accrue(&mut d, env::block_timestamp());
         d.principal = U128(d.principal.0 - amount);
         self.depositors.insert(account.clone(), d);

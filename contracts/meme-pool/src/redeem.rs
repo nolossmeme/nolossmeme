@@ -15,7 +15,7 @@ impl Contract {
     pub fn redeem(&mut self, amount: U128) -> Promise {
         assert_one_yocto();
         require!(
-            !self.draw_in_progress,
+            !self.draw_locked(),
             "draw in progress, retry in a few seconds"
         );
         require!(amount.0 > 0, "amount must be > 0");

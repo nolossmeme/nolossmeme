@@ -27,3 +27,7 @@ pub const GAS_CB_WITHDRAW_NEAR: Gas = Gas::from_tgas(130);
 pub const GAS_CB_AFTER_UNSTAKE: Gas = Gas::from_tgas(55);
 /// The epoch settlement runs in one callback; callers attach 300 TGas to `draw`.
 pub const GAS_CB_DRAW: Gas = Gas::from_tgas(270);
+/// A draw whose callback panicked (gas, log limits) leaves `draw_in_progress` set. After this
+/// long the flag no longer blocks withdrawals, redeems or the next draw. Callbacks run within a
+/// few blocks, so a live draw is never this old.
+pub const DRAW_LOCK_TIMEOUT_NS: u64 = 600_000_000_000;

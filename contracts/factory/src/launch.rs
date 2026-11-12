@@ -12,6 +12,11 @@ const GAS_CALLBACK: Gas = Gas::from_tgas(10);
 /// Covers the pool's own state and registering stNEAR receivers on Meta Pool (0.00125 Ⓝ each).
 pub(crate) const STATE_ALLOWANCE: NearToken = NearToken::from_near(1);
 const MAX_SLUG_LEN: usize = 32;
+/// The registry entry is paid by the factory's own balance: keep it small.
+const MAX_NAME_LEN: usize = 64;
+const MAX_SYMBOL_LEN: usize = 16;
+/// A 96 px WebP data URI is ~5 kB; this leaves room for SVG or PNG.
+const MAX_ICON_LEN: usize = 16_384;
 
 #[near]
 impl Contract {
@@ -27,6 +32,18 @@ impl Contract {
         params: PoolParams,
     ) -> Promise {
         Self::validate_slug(&slug);
+        require!(
+            !name.is_empty() && name.len() <= MAX_NAME_LEN,
+            "name must be 1-64 bytes"
+        );
+        require!(
+            !symbol.is_empty() && symbol.len() <= MAX_SYMBOL_LEN,
+            "symbol must be 1-16 bytes"
+        );
+        require!(
+            icon.as_ref().is_none_or(|i| i.len() <= MAX_ICON_LEN),
+            "icon must be at most 16 kB"
+        );
         require!(!self.memes.contains_key(&slug), "slug already taken");
         let cost = self.get_launch_cost();
         require!(

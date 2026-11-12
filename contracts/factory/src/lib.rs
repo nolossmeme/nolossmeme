@@ -139,4 +139,15 @@ mod tests {
         ctx("alice.testnet", 10_000_000_000_000_000_000_000_000);
         let _ = c.create_meme("Bad Slug!".into(), "x".into(), "X".into(), None, params());
     }
+
+    #[test]
+    #[should_panic(expected = "icon must be at most 16 kB")]
+    fn oversized_icon_is_refused() {
+        ctx("nolossmeme.testnet", 0);
+        let mut c = Contract::new("meta-v2.pool.testnet".parse().unwrap());
+        c.store_pool_code(Base64VecU8::from(vec![1u8; 2_000]));
+        ctx("alice.testnet", 10_000_000_000_000_000_000_000_000);
+        let icon = format!("data:image/png;base64,{}", "A".repeat(20_000));
+        let _ = c.create_meme("big".into(), "x".into(), "X".into(), Some(icon), params());
+    }
 }

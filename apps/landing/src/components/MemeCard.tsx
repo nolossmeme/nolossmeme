@@ -1,3 +1,4 @@
+import { MemeIcon } from "@nolossmeme/ui";
 import {
   formatMeme,
   formatNear,
@@ -36,12 +37,7 @@ export function MemeCard({ meme, state }: { meme: MemeInfo; state: PoolState | u
       className="card flex flex-col gap-4 p-5 transition hover:-translate-y-0.5 hover:border-lime/40"
     >
       <div className="flex items-center gap-3">
-        <div
-          className="grid size-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-lime/70 to-pink/70 font-bold text-bg"
-          aria-hidden
-        >
-          {meme.icon && meme.icon.length <= 2 ? meme.icon : meme.symbol.slice(0, 2)}
-        </div>
+        <MemeIcon icon={meme.icon} symbol={meme.symbol} slug={meme.slug} />
         <div className="min-w-0">
           <div className="truncate font-semibold">{meme.name}</div>
           <div className="font-mono text-xs text-muted">${meme.symbol}</div>

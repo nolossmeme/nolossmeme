@@ -1,5 +1,8 @@
+import dogn from "./logos/dogn.png";
+import pepn from "./logos/pepn.png";
+
 /** Artwork for the testnet showcase pools; their on-chain icon is an emoji and cannot change. */
-const LOGOS: Record<string, string> = { dogn: "logos/dogn.png", pepn: "logos/pepn.png" };
+const LOGOS: Record<string, string> = { dogn, pepn };
 
 export function MemeIcon({
   icon,
@@ -14,7 +17,7 @@ export function MemeIcon({
 }) {
   const style = { width: size, height: size };
   const logo = slug ? LOGOS[slug] : undefined;
-  const src = logo ? `${import.meta.env.BASE_URL}${logo}` : icon;
+  const src = logo ?? icon;
   if (src && (logo || src.startsWith("data:") || src.startsWith("http"))) {
     return (
       <img

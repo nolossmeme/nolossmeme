@@ -52,7 +52,7 @@ export function FaucetCard({ accountId }: { accountId: string | undefined }) {
         setDone(body.tx_hash);
         toast.show({
           kind: "success",
-          text: `Sent ${formatNear(info?.amount ?? "0", 2)} Ⓝ to ${accountId}`,
+          text: `Sent ${formatNear(info?.amount ?? "0", 2)} NEAR to ${accountId}`,
         });
       } else if (res.status === 429 && body.retry_at) {
         toast.show({
@@ -76,7 +76,7 @@ export function FaucetCard({ accountId }: { accountId: string | undefined }) {
         <h2 className="font-semibold">Need testnet NEAR?</h2>
         <span className="pill">
           {info
-            ? `${formatNear(info.amount, 2)} Ⓝ / ${Math.round(info.cooldown_ms / 3_600_000)}h`
+            ? `${formatNear(info.amount, 2)} NEAR / ${Math.round(info.cooldown_ms / 3_600_000)}h`
             : "…"}
         </span>
       </div>

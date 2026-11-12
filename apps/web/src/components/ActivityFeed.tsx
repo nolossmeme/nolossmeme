@@ -41,7 +41,7 @@ const ICON: Record<IndexedEvent["kind"], string> = {
 function amount(e: IndexedEvent, symbol: string): string {
   if (!e.amount) return "";
   if (["deposit", "deposit_refunded", "withdraw", "withdraw_near", "fund"].includes(e.kind))
-    return `${formatNear(e.amount, 3)} Ⓝ`;
+    return `${formatNear(e.amount, 3)} NEAR`;
   return `${formatMeme(e.amount, 1)} ${symbol}`;
 }
 

@@ -60,7 +60,7 @@ export function ProjectionChart({ points }: { points: ProjectionPoint[] }) {
           yAxisId="left"
           type="monotone"
           dataKey="treasury"
-          name="Treasury (Ⓝ)"
+          name="Treasury (NEAR)"
           stroke="#ffc857"
           dot={false}
           strokeWidth={2}
@@ -69,7 +69,7 @@ export function ProjectionChart({ points }: { points: ProjectionPoint[] }) {
           yAxisId="right"
           type="monotone"
           dataKey="floor"
-          name="Floor (Ⓝ/MEME)"
+          name="Floor (NEAR/MEME)"
           stroke="#ff5bd6"
           dot={false}
           strokeWidth={2}

@@ -47,7 +47,7 @@ export function FloorChart({ draws }: { draws: Draw[] }) {
             borderRadius: 12,
             fontSize: 12,
           }}
-          formatter={(value) => [`${String(value)} Ⓝ`, "Floor per MEME"]}
+          formatter={(value) => [`${String(value)} NEAR`, "Floor per MEME"]}
           labelFormatter={(l) => `Epoch #${String(l)}`}
         />
         <Area

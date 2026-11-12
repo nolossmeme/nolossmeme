@@ -1,11 +1,5 @@
-import {
-  actions,
-  formatNear,
-  parseMeme,
-  parseNear,
-  validateSlug,
-  type LaunchParams,
-} from "@nolossmeme/sdk";
+import { NearAmount } from "@nolossmeme/ui";
+import { actions, parseMeme, parseNear, validateSlug, type LaunchParams } from "@nolossmeme/sdk";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -234,10 +228,10 @@ export function LaunchPage() {
           />
           <Field
             id="mindep"
-            label="Minimum deposit (Ⓝ)"
+            label="Minimum deposit (NEAR)"
             value={form.minDeposit}
             onChange={set("minDeposit")}
-            hint="Meta Pool rejects stakes under 1 Ⓝ"
+            hint="Meta Pool rejects stakes under 1 NEAR"
           />
           <Field
             id="target"
@@ -250,7 +244,9 @@ export function LaunchPage() {
 
         <div className="flex items-center justify-between mt-2 text-sm">
           <span className="text-muted">Launch cost (storage for the pool contract)</span>
-          <span className="font-mono">{cost !== undefined ? `${formatNear(cost, 2)} Ⓝ` : "…"}</span>
+          <span className="font-mono">
+            {cost !== undefined ? <NearAmount yocto={cost} usd /> : "…"}
+          </span>
         </div>
         <button className="btn-primary" type="submit" disabled={!ready || tx.pending}>
           {launchLabel(tx.pending, Boolean(tx.signedAccountId))}
@@ -266,7 +262,7 @@ export function LaunchPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Field
             id="tvl"
-            label="TVL (Ⓝ)"
+            label="TVL (NEAR)"
             value={sim.tvl}
             onChange={(v) => setSim((s) => ({ ...s, tvl: v }))}
           />
@@ -300,11 +296,15 @@ export function LaunchPage() {
             </div>
             <div>
               <dt className="kicker">Treasury day 60</dt>
-              <dd className="font-mono">{formatNear(points.at(-1)!.treasuryNear, 2)} Ⓝ</dd>
+              <dd className="font-mono">
+                <NearAmount yocto={points.at(-1)!.treasuryNear} />
+              </dd>
             </div>
             <div>
               <dt className="kicker">Floor day 60</dt>
-              <dd className="font-mono text-lime">{formatNear(points.at(-1)!.floor, 8)} Ⓝ</dd>
+              <dd className="font-mono text-lime">
+                <NearAmount yocto={points.at(-1)!.floor} digits={8} />
+              </dd>
             </div>
           </dl>
         )}

@@ -1,5 +1,5 @@
-import { MemeIcon } from "@nolossmeme/ui";
-import { formatMeme, formatNear, nsToDate, plural, type MemeInfo } from "@nolossmeme/sdk";
+import { MemeIcon, NearAmount } from "@nolossmeme/ui";
+import { formatMeme, nsToDate, plural, type MemeInfo } from "@nolossmeme/sdk";
 import { Link } from "react-router-dom";
 
 import { usePoolState } from "../hooks/usePool";
@@ -29,12 +29,14 @@ export function MemeCard({ meme }: { meme: MemeInfo }) {
       <dl className="grid grid-cols-3 gap-3 text-sm">
         <div>
           <dt className="kicker">Locked</dt>
-          <dd className="font-mono">{state ? `${formatNear(state.total_principal, 1)} Ⓝ` : "…"}</dd>
+          <dd className="font-mono">
+            {state ? <NearAmount yocto={state.total_principal} digits={1} /> : "…"}
+          </dd>
         </div>
         <div>
           <dt className="kicker">Floor</dt>
           <dd className="font-mono text-lime">
-            {state ? `${formatNear(state.floor_price, 6)} Ⓝ` : "…"}
+            {state ? <NearAmount yocto={state.floor_price} digits={6} /> : "…"}
           </dd>
         </div>
         <div>

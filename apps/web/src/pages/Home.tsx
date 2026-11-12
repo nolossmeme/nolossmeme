@@ -1,4 +1,5 @@
-import { formatNear, nsToDate, type MemeInfo, type PoolState } from "@nolossmeme/sdk";
+import { NearAmount, UsdHint } from "@nolossmeme/ui";
+import { nsToDate, type MemeInfo, type PoolState } from "@nolossmeme/sdk";
 import { useQueries } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
@@ -70,11 +71,15 @@ export function HomePage() {
         </Link>
       </section>
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatTile label="NEAR locked" value={`${formatNear(tvl, 1)} Ⓝ`} hint="100 % withdrawable" />
+        <StatTile
+          label="NEAR locked"
+          value={<NearAmount yocto={tvl} digits={1} />}
+          hint={<UsdHint yocto={tvl} prefix="100 % withdrawable" />}
+        />
         <StatTile
           label="Treasury backing"
-          value={`${formatNear(treasury, 4)} Ⓝ`}
-          hint="from yield only"
+          value={<NearAmount yocto={treasury} digits={4} />}
+          hint={<UsdHint yocto={treasury} prefix="from yield only" />}
           accent
         />
         <StatTile label="Memes" value={memes?.length ?? "…"} />

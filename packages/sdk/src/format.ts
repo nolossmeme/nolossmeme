@@ -93,3 +93,43 @@ export function shortAccount(accountId: string, max = 20): string {
   if (accountId.length <= max) return accountId;
   return `${accountId.slice(0, max - 7)}…${accountId.slice(-4)}`;
 }
+
+/** yoctoNEAR at `usdPerNear` → dollars (float; display only). */
+export function nearToUsd(yocto: string | bigint, usdPerNear: number): number {
+  return (Number(toBigInt(yocto) / 10n ** 16n) / 1e8) * usdPerNear;
+}
+
+/** "$1,234.56", "$0.42", "$0.00031" (small values keep two significant digits). */
+export function formatUsd(usd: number): string {
+  if (usd === 0) return "$0";
+  const abs = Math.abs(usd);
+  const opts: Intl.NumberFormatOptions =
+    abs >= 0.01
+      ? { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+      : { maximumSignificantDigits: 2 };
+  return `${usd < 0 ? "-" : ""}$${abs.toLocaleString("en-US", opts)}`;
+}
+
+/** NEAR/USD from CoinGecko, falling back to Binance. Rejects if both fail. */
+export async function fetchNearUsd(): Promise<number> {
+  const sources: [string, (j: unknown) => unknown][] = [
+    [
+      "https://api.coingecko.com/api/v3/simple/price?ids=near&vs_currencies=usd",
+      (j) => (j as { near?: { usd?: number } }).near?.usd,
+    ],
+    [
+      "https://api.binance.com/api/v3/ticker/price?symbol=NEARUSDT",
+      (j) => Number((j as { price?: string }).price),
+    ],
+  ];
+  for (const [url, pick] of sources) {
+    try {
+      const res = await fetch(url);
+      const price = res.ok ? pick(await res.json()) : undefined;
+      if (typeof price === "number" && Number.isFinite(price) && price > 0) return price;
+    } catch {
+      // try the next source
+    }
+  }
+  throw new Error("NEAR price unavailable");
+}

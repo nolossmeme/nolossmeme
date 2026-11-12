@@ -1,4 +1,5 @@
-import { formatMeme, formatNear, nsToDate, shortAccount, type Draw } from "@nolossmeme/sdk";
+import { NearAmount } from "@nolossmeme/ui";
+import { formatMeme, nsToDate, shortAccount, type Draw } from "@nolossmeme/sdk";
 
 import { explorerAccount } from "../lib/client";
 import { by } from "../lib/list";
@@ -52,7 +53,9 @@ export function DrawLog({ draws, symbol }: { draws: Draw[]; symbol: string }) {
                 <td className="py-2 pr-3 text-muted whitespace-nowrap">
                   {nsToDate(d.timestamp).toLocaleString()}
                 </td>
-                <td className="py-2 pr-3">{formatNear(d.yield_near, 5)} Ⓝ</td>
+                <td className="py-2 pr-3">
+                  <NearAmount yocto={d.yield_near} digits={5} />
+                </td>
                 <td className="py-2 pr-3">
                   {d.winner ? (
                     <a
@@ -82,7 +85,9 @@ export function DrawLog({ draws, symbol }: { draws: Draw[]; symbol: string }) {
                     <span className="text-muted"> · streak {d.community_streak}</span>
                   )}
                 </td>
-                <td className="py-2 pr-3">{formatNear(d.floor_after, 6)} Ⓝ</td>
+                <td className="py-2 pr-3">
+                  <NearAmount yocto={d.floor_after} digits={6} />
+                </td>
               </tr>
             ))}
           </tbody>

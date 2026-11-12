@@ -191,6 +191,9 @@ importers:
 
   packages/ui:
     dependencies:
+      '@nolossmeme/sdk':
+        specifier: workspace:*
+        version: link:../sdk
       react:
         specifier: ^19.2.0
         version: 19.3.1
@@ -4443,13 +4446,13 @@ snapshots:
       '@remotion/timeline-utils': 4.0.543(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@rspack/core': 2.3.0
       '@rspack/plugin-react-refresh': 2.0.2(@rspack/core@2.3.0)(react-refresh@0.18.0)
-      css-loader: 7.1.4(@rspack/core@2.3.0)(webpack@5.105.0(postcss@8.5.32))
+      css-loader: 7.1.4(@rspack/core@2.3.0)(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.32))
       esbuild: 0.28.1
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
       react-refresh: 0.18.0
       remotion: 4.0.543(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      style-loader: 4.0.0(webpack@5.105.0(postcss@8.5.32))
+      style-loader: 4.0.0(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.32))
       webpack: 5.105.0(esbuild@0.28.1)(postcss@8.5.32)
     transitivePeerDependencies:
       - '@minify-html/node'
@@ -5732,7 +5735,7 @@ snapshots:
       shebang-command: 2.0.0
       which: 2.0.2
 
-  css-loader@7.1.4(@rspack/core@2.3.0)(webpack@5.105.0(postcss@8.5.32)):
+  css-loader@7.1.4(@rspack/core@2.3.0)(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.32)):
     dependencies:
       icss-utils: 5.1.0(postcss@8.5.32)
       postcss: 8.5.32
@@ -6952,7 +6955,7 @@ snapshots:
     dependencies:
       js-tokens: 9.0.1
 
-  style-loader@4.0.0(webpack@5.105.0(postcss@8.5.32)):
+  style-loader@4.0.0(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.32)):
     dependencies:
       webpack: 5.105.0(esbuild@0.28.1)(postcss@8.5.32)
 

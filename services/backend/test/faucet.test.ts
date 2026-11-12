@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { createFaucet } from "../src/api/faucet.js";
 import { openDb } from "../src/db/client.js";
 
-async function faucet(turnstileOk = true) {
+async function faucet(turnstileOk = true, slowSend = false, dailyCap?: number) {
   const db = await openDb(":memory:");
   const sent: [string, bigint][] = [];
   let clock = 1_000_000;
@@ -13,10 +13,12 @@ async function faucet(turnstileOk = true) {
     amountYocto: 10n ** 24n,
     cooldownMs: 3_600_000,
     turnstileSecret: "s",
-    send: (to, amount) => {
+    send: async (to, amount) => {
       sent.push([to, amount]);
-      return Promise.resolve("TXHASH");
+      if (slowSend) await new Promise((r) => setTimeout(r, 20));
+      return "TXHASH";
     },
+    ...(dailyCap === undefined ? {} : { dailyCap }),
     accountExists: (id) => Promise.resolve(id !== "ghost.testnet"),
     fetchImpl: () =>
       Promise.resolve(new Response(JSON.stringify({ success: turnstileOk }), { status: 200 })),
@@ -70,5 +72,26 @@ describe("faucet", () => {
     expect(await (await app.request("/")).json()).toMatchObject({
       amount: "1000000000000000000000000",
     });
+  });
+});
+
+describe("faucet abuse", () => {
+  it("grants once to parallel requests for the same account", async () => {
+    const { app, sent } = await faucet(true, true);
+    const ips = ["1.1.1.1", "2.2.2.2", "3.3.3.3", "4.4.4.4"];
+    const res = await Promise.all(
+      ips.map(async (ip) => post(app, { account_id: "alice.testnet", token: "0.valid-token" }, ip)),
+    );
+    expect(res.filter((r) => r.status === 200)).toHaveLength(1);
+    expect(sent).toHaveLength(1);
+  });
+
+  it("stops at the daily cap", async () => {
+    const { app } = await faucet(true, false, 2);
+    const claim = (who: string, ip: string) =>
+      post(app, { account_id: `${who}.testnet`, token: "0.valid-token" }, ip);
+    expect((await claim("a", "1.1.1.1")).status).toBe(200);
+    expect((await claim("b", "2.2.2.2")).status).toBe(200);
+    expect((await claim("c", "3.3.3.3")).status).toBe(429);
   });
 });

@@ -3,7 +3,7 @@
  * script cannot drain it. Only mounted when `FAUCET_ACCOUNT_ID`, `FAUCET_PRIVATE_KEY` and
  * `TURNSTILE_SECRET_KEY` are configured.
  */
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { z } from "zod";
 
 import type { Db } from "../db/client.js";
@@ -18,9 +18,13 @@ export interface FaucetDeps {
   send: (accountId: string, amount: bigint) => Promise<string>;
   /** Looks the account up on chain. */
   accountExists: (accountId: string) => Promise<boolean>;
+  /** Grants allowed across all accounts per rolling 24 h (a paid captcha farm cannot drain it). */
+  dailyCap?: number;
   fetchImpl?: typeof fetch;
   now?: () => number;
 }
+
+const DAY_MS = 86_400_000;
 
 const Body = z.object({
   account_id: z
@@ -59,6 +63,9 @@ export async function verifyTurnstile(
 export function createFaucet(deps: FaucetDeps): Hono {
   const app = new Hono();
   const now = deps.now ?? Date.now;
+  // Accounts and IPs with a claim being processed. The DB check alone is racy: N parallel
+  // requests would all pass it before the first one records its claim.
+  const busy = new Set<string>();
 
   app.get("/", (c) =>
     c.json({ amount: deps.amountYocto.toString(), cooldown_ms: deps.cooldownMs }),
@@ -83,6 +90,18 @@ export function createFaucet(deps: FaucetDeps): Hono {
     ) {
       return c.json({ error: "turnstile verification failed" }, 403);
     }
+    const keys = [`a:${account_id}`, `i:${ip}`];
+    if (keys.some((k) => busy.has(k)))
+      return c.json({ error: "a claim is already being processed" }, 429);
+    keys.forEach((k) => busy.add(k));
+    try {
+      return await grant(c, account_id, ip);
+    } finally {
+      keys.forEach((k) => busy.delete(k));
+    }
+  });
+
+  const grant = async (c: Context, account_id: string, ip: string): Promise<Response> => {
     const since = now() - deps.cooldownMs;
     const recent = await deps.db.execute({
       sql: "SELECT claimed_at FROM faucet_claims WHERE (account_id = ? OR ip = ?) AND claimed_at > ? ORDER BY claimed_at DESC LIMIT 1",
@@ -93,22 +112,43 @@ export function createFaucet(deps: FaucetDeps): Hono {
       const retryAt = Number(last) + deps.cooldownMs;
       return c.json({ error: "already claimed recently", retry_at: retryAt }, 429);
     }
+    if (deps.dailyCap !== undefined) {
+      const day = await deps.db.execute({
+        sql: "SELECT COUNT(*) AS n FROM faucet_claims WHERE claimed_at > ?",
+        args: [now() - DAY_MS],
+      });
+      if (Number(day.rows[0]?.["n"] ?? 0) >= deps.dailyCap)
+        return c.json({ error: "the faucet hit its daily limit, try again tomorrow" }, 429);
+    }
     if (!(await deps.accountExists(account_id)))
       return c.json({ error: "account does not exist on testnet" }, 404);
 
+    // Record the claim before sending: a send that times out after broadcasting must still
+    // count. It is removed only when the send fails outright.
+    const claimedAt = now();
+    await deps.db.execute({
+      sql: "INSERT INTO faucet_claims (account_id, ip, claimed_at, tx_hash) VALUES (?, ?, ?, '')",
+      args: [account_id, ip, claimedAt],
+    });
+    let txHash: string;
     try {
-      const txHash = await deps.send(account_id, deps.amountYocto);
-      await deps.db.execute({
-        sql: "INSERT INTO faucet_claims (account_id, ip, claimed_at, tx_hash) VALUES (?, ?, ?, ?)",
-        args: [account_id, ip, now(), txHash],
-      });
-      log.info("faucet grant", { account_id, amount: deps.amountYocto.toString(), txHash });
-      return c.json({ ok: true, amount: deps.amountYocto.toString(), tx_hash: txHash });
+      txHash = await deps.send(account_id, deps.amountYocto);
     } catch (e) {
       log.error("faucet send failed", { account_id, error: String(e) });
+      if (!/timeout|timed out/i.test(String(e)))
+        await deps.db.execute({
+          sql: "DELETE FROM faucet_claims WHERE account_id = ? AND claimed_at = ? AND tx_hash = ''",
+          args: [account_id, claimedAt],
+        });
       return c.json({ error: "transfer failed, try again later" }, 502);
     }
-  });
+    await deps.db.execute({
+      sql: "UPDATE faucet_claims SET tx_hash = ? WHERE account_id = ? AND claimed_at = ?",
+      args: [txHash, account_id, claimedAt],
+    });
+    log.info("faucet grant", { account_id, amount: deps.amountYocto.toString(), txHash });
+    return c.json({ ok: true, amount: deps.amountYocto.toString(), tx_hash: txHash });
+  };
 
   return app;
 }

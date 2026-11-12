@@ -64,7 +64,7 @@ export function MemePage() {
   return (
     <div className="flex flex-col gap-8">
       <header className="flex flex-wrap items-center gap-4">
-        <MemeIcon icon={meme.icon} symbol={meme.symbol} size={56} />
+        <MemeIcon icon={meme.icon} symbol={meme.symbol} slug={meme.slug} size={56} />
         <div>
           <h1 className="display text-3xl sm:text-4xl">
             {meme.name} <span className="text-muted font-mono text-xl">${meme.symbol}</span>

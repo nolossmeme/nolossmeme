@@ -12,6 +12,8 @@ COPY apps/web/package.json apps/web/
 RUN pnpm install --frozen-lockfile --filter @nolossmeme/landing... --filter @nolossmeme/web...
 COPY packages packages
 COPY apps/landing apps/landing
+# apps/landing/public/demo.mp4 is a symlink to the demo video.
+COPY docs/demo.mp4 docs/demo.mp4
 COPY apps/web apps/web
 ARG VITE_INDEXER_URL=https://api.nolossmeme.fun
 ARG VITE_TURNSTILE_SITE_KEY=

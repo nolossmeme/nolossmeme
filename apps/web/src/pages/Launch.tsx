@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 
 import { ProjectionChart } from "../components/ProjectionChart";
 import { useLaunchCost, useMemes } from "../hooks/useMemes";
+import { decimalInput } from "../lib/amount";
 import { imageToIcon } from "../lib/icon";
 import { network } from "../lib/client";
 import { project } from "../lib/projection";
@@ -383,7 +384,10 @@ function Field({
         className="input"
         inputMode="decimal"
         value={value}
-        onChange={(e) => onChange(e.target.value.replace(/[^0-9.]/g, ""))}
+        onChange={(e) => {
+          const v = decimalInput(e.target.value);
+          if (v !== null) onChange(v);
+        }}
       />
       {hint && <p className="text-xs text-muted mt-1">{hint}</p>}
     </div>

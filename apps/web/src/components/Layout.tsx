@@ -2,6 +2,7 @@ import { Logo } from "@nolossmeme/ui";
 import { NavLink, Outlet } from "react-router-dom";
 
 import { LANDING_URL, NETWORK_ID } from "../lib/client";
+import { ErrorBoundary } from "./ErrorBoundary";
 import { WalletButton } from "./WalletButton";
 
 const links = [
@@ -47,7 +48,9 @@ export function Layout() {
         </div>
       </header>
       <main className="flex-1 w-full mx-auto max-w-6xl px-4 pt-28 pb-24 md:pb-16">
-        <Outlet />
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
       </main>
       <nav
         className="md:hidden fixed inset-x-4 bottom-4 z-40 glass rounded-full h-12 flex items-center justify-around px-2"

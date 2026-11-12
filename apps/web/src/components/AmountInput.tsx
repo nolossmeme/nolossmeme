@@ -1,6 +1,8 @@
 import { formatUsd } from "@nolossmeme/sdk";
 import { useNearUsd } from "@nolossmeme/ui";
 
+import { decimalInput } from "../lib/amount";
+
 interface Props {
   value: string;
   onChange: (v: string) => void;
@@ -22,7 +24,10 @@ export function AmountInput({ value, onChange, unit, max, placeholder = "0.0", i
         inputMode="decimal"
         placeholder={placeholder}
         value={value}
-        onChange={(e) => onChange(e.target.value.replace(/[^0-9.]/g, ""))}
+        onChange={(e) => {
+          const v = decimalInput(e.target.value);
+          if (v !== null) onChange(v);
+        }}
         aria-label={`Amount in ${unit}`}
       />
       <div className="absolute inset-y-0 right-2 flex items-center gap-2 text-xs">

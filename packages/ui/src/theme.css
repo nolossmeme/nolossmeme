@@ -1,4 +1,6 @@
 /* Shared NoLossMeme theme. Import after `@import "tailwindcss";` in each app. */
+/* Components in this package use utilities too; scan them. */
+@source ".";
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;

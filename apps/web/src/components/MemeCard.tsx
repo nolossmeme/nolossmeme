@@ -1,9 +1,9 @@
+import { MemeIcon } from "@nolossmeme/ui";
 import { formatMeme, formatNear, nsToDate, plural, type MemeInfo } from "@nolossmeme/sdk";
 import { Link } from "react-router-dom";
 
 import { usePoolState } from "../hooks/usePool";
 import { Countdown } from "./Countdown";
-import { MemeIcon } from "./MemeIcon";
 
 export function MemeCard({ meme }: { meme: MemeInfo }) {
   const { data: state } = usePoolState(meme.account_id);

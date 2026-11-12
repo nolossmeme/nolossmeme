@@ -1,3 +1,4 @@
+import { MemeIcon } from "@nolossmeme/ui";
 import {
   STAKING_MIN_DEPOSIT,
   actions,
@@ -25,7 +26,6 @@ import { DrawLog } from "../components/DrawLog";
 import { FaucetCard } from "../components/FaucetCard";
 import { FloorChart } from "../components/FloorChart";
 import { Leaderboard } from "../components/Leaderboard";
-import { MemeIcon } from "../components/MemeIcon";
 import { SeriesChart } from "../components/SeriesChart";
 import { CommunityStreak } from "../components/CommunityStreak";
 import { StatTile } from "../components/StatTile";

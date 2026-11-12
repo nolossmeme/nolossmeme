@@ -2,6 +2,9 @@ import { formatMeme, formatNear, shortAccount } from "@nolossmeme/sdk";
 
 import { explorerAccount, explorerTx } from "../lib/client";
 import type { IndexedEvent } from "../lib/indexer";
+import { by } from "../lib/list";
+import { useList } from "../hooks/useList";
+import { ListToolbar, NoMatch, Pager } from "./ListControls";
 
 const LABEL: Record<IndexedEvent["kind"], string> = {
   launch: "launched a meme",
@@ -42,6 +45,28 @@ function amount(e: IndexedEvent, symbol: string): string {
   return `${formatMeme(e.amount, 1)} ${symbol}`;
 }
 
+type Kind = IndexedEvent["kind"];
+const group =
+  (...kinds: Kind[]) =>
+  (e: IndexedEvent) =>
+    kinds.includes(e.kind);
+const SPEC = {
+  text: (e: IndexedEvent) => `${e.account ?? ""} ${e.contract} ${LABEL[e.kind]}`,
+  filters: {
+    All: () => true,
+    Deposits: group("deposit", "deposit_refunded", "fund"),
+    Withdrawals: group("withdraw", "withdraw_near", "redeem"),
+    "Check-ins": group("check_in"),
+    Draws: group("draw", "draw_aborted"),
+    Tokens: group("ft_mint", "ft_burn", "ft_transfer"),
+  },
+  sorts: {
+    Newest: by((e: IndexedEvent) => e.blockHeight, -1),
+    Oldest: by((e: IndexedEvent) => e.blockHeight),
+  },
+  pageSize: 10,
+};
+
 function ago(ms: number): string {
   const s = Math.max(0, Math.floor((Date.now() - ms) / 1000));
   if (s < 60) return `${s}s ago`;
@@ -59,60 +84,66 @@ export function ActivityFeed({
   symbol: string;
   showPool?: boolean;
 }) {
+  const ctl = useList(events, SPEC);
   if (events.length === 0) return <p className="text-sm text-muted">No activity indexed yet.</p>;
   return (
-    <ol className="divide-y divide-white/6">
-      {events.map((e) => (
-        <li key={e.id} className="flex items-center gap-3 py-2.5 text-sm">
-          <span
-            className="grid size-8 shrink-0 place-items-center rounded-full bg-white/[0.05]"
-            aria-hidden
-          >
-            {ICON[e.kind]}
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="truncate">
-              {e.account ? (
-                <a
-                  className="font-mono hover:text-lime"
-                  href={explorerAccount(e.account)}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {shortAccount(e.account, 22)}
-                </a>
-              ) : (
-                <span className="text-muted">pool</span>
-              )}{" "}
-              <span className="text-muted">{LABEL[e.kind]}</span>{" "}
-              <span className="font-mono">{amount(e, symbol)}</span>
-              {e.kind === "check_in" && typeof e.data["streak"] === "number" && (
-                <span className="text-muted"> · streak {e.data["streak"]}</span>
-              )}
-              {e.kind === "draw" && (
-                <span className="text-muted"> · epoch #{String(e.data["epoch"])}</span>
-              )}
-            </div>
-            <div className="text-xs text-muted">
-              {showPool && <span className="font-mono">{e.contract.split(".")[0]} · </span>}
-              {ago(e.blockTimestamp)}
-              {e.txHash && (
-                <>
-                  {" · "}
+    <div>
+      <ListToolbar ctl={ctl} label="activity" placeholder="Account" />
+      <ol className="divide-y divide-white/6">
+        {ctl.rows.map((e) => (
+          <li key={e.id} className="flex items-center gap-3 py-2.5 text-sm">
+            <span
+              className="grid size-8 shrink-0 place-items-center rounded-full bg-white/[0.05]"
+              aria-hidden
+            >
+              {ICON[e.kind]}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="truncate">
+                {e.account ? (
                   <a
-                    className="hover:text-text"
-                    href={explorerTx(e.txHash)}
+                    className="font-mono hover:text-lime"
+                    href={explorerAccount(e.account)}
                     target="_blank"
                     rel="noreferrer"
                   >
-                    tx
+                    {shortAccount(e.account, 22)}
                   </a>
-                </>
-              )}
+                ) : (
+                  <span className="text-muted">pool</span>
+                )}{" "}
+                <span className="text-muted">{LABEL[e.kind]}</span>{" "}
+                <span className="font-mono">{amount(e, symbol)}</span>
+                {e.kind === "check_in" && typeof e.data["streak"] === "number" && (
+                  <span className="text-muted"> · streak {e.data["streak"]}</span>
+                )}
+                {e.kind === "draw" && (
+                  <span className="text-muted"> · epoch #{String(e.data["epoch"])}</span>
+                )}
+              </div>
+              <div className="text-xs text-muted">
+                {showPool && <span className="font-mono">{e.contract.split(".")[0]} · </span>}
+                {ago(e.blockTimestamp)}
+                {e.txHash && (
+                  <>
+                    {" · "}
+                    <a
+                      className="hover:text-text"
+                      href={explorerTx(e.txHash)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      tx
+                    </a>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
-        </li>
-      ))}
-    </ol>
+          </li>
+        ))}
+      </ol>
+      <NoMatch ctl={ctl} />
+      <Pager ctl={ctl} />
+    </div>
   );
 }

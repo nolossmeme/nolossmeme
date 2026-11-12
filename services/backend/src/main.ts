@@ -12,7 +12,7 @@ import { Scanner } from "./indexer/scanner.js";
 import { TxApi } from "./indexer/txapi.js";
 import { startKeeperJob } from "./jobs/keeper.js";
 import { startSnapshotJob } from "./jobs/snapshots.js";
-import { startSponsorJob } from "./jobs/sponsor.js";
+import { sponsorCreators, startSponsorJob } from "./jobs/sponsor.js";
 import { log, setLogLevel } from "./log.js";
 
 type Stop = () => void;
@@ -54,6 +54,7 @@ function startJobs(
         privateKey: cfg.SPONSOR_PRIVATE_KEY,
         amountYocto: yocto(cfg.SPONSOR_AMOUNT_NEAR),
         intervalMs: cfg.SPONSOR_INTERVAL_HOURS * 3_600_000,
+        creators: sponsorCreators(cfg),
       }),
     );
   }
@@ -71,6 +72,7 @@ async function maybeFaucet(cfg: Config, db: Db): Promise<Hono | undefined> {
     cfg.TURNSTILE_SECRET_KEY,
     cfg.FAUCET_AMOUNT_NEAR,
     cfg.FAUCET_COOLDOWN_HOURS,
+    cfg.FAUCET_DAILY_CAP,
   );
 }
 
@@ -144,6 +146,7 @@ async function buildFaucet(
   turnstileSecret: string,
   amountNear: number,
   cooldownHours: number,
+  dailyCap: number,
 ) {
   const { Account, JsonRpcProvider } = await import("near-api-js");
   type KeyPairString = ConstructorParameters<typeof Account>[2];
@@ -155,6 +158,7 @@ async function buildFaucet(
     db,
     amountYocto,
     cooldownMs: cooldownHours * 3_600_000,
+    dailyCap,
     turnstileSecret,
     send: async (to, amount) => {
       const outcome = await sender.transfer({ receiverId: to, amount });

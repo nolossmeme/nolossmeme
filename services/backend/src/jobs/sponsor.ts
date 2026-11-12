@@ -17,6 +17,9 @@ export interface SponsorOptions {
   privateKey: string;
   amountYocto: bigint;
   intervalMs: number;
+  /** Only pools launched by these accounts are funded. Anyone can launch a pool, so funding
+   *  every pool in the registry would let a stranger drain the sponsor with cheap launches. */
+  creators: ReadonlySet<string>;
 }
 
 /**
@@ -54,6 +57,7 @@ export function startSponsorJob(
   const sent = new Map<string, number>();
   const tick = async () => {
     for (const p of await store.listPools()) {
+      if (!o.creators.has(p.creator)) continue;
       try {
         if (!(await isDue(store, p.account_id, o.accountId, o.intervalMs, Date.now(), sent)))
           continue;
@@ -73,11 +77,28 @@ export function startSponsorJob(
       }
     }
   };
-  const first = setTimeout(() => void tick(), 60_000);
+  const run = () =>
+    void tick().catch((e: unknown) => log.warn("sponsor tick failed", { error: String(e) }));
+  const first = setTimeout(run, 60_000);
   // Check often; isDue keeps the real cadence across restarts.
-  const id = setInterval(() => void tick(), Math.min(o.intervalMs, 3_600_000));
+  const id = setInterval(run, Math.min(o.intervalMs, 3_600_000));
   return () => {
     clearTimeout(first);
     clearInterval(id);
   };
+}
+
+/** `streak.nolossmeme.testnet` → {it, `nolossmeme.testnet`}, unless SPONSOR_CREATORS says otherwise. */
+export function sponsorCreators(cfg: {
+  SPONSOR_CREATORS?: string | undefined;
+  network: { factory: string };
+}): Set<string> {
+  if (cfg.SPONSOR_CREATORS)
+    return new Set(
+      cfg.SPONSOR_CREATORS.split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+    );
+  const factory = cfg.network.factory;
+  return new Set([factory, factory.slice(factory.indexOf(".") + 1)]);
 }

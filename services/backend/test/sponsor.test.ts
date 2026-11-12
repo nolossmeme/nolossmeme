@@ -35,3 +35,16 @@ describe("isDue", () => {
     expect(await isDue(store, POOL, SPONSOR, 12 * HOUR, 107 * HOUR, sent)).toBe(false);
   });
 });
+
+describe("sponsorCreators", async () => {
+  const { sponsorCreators } = await import("../src/jobs/sponsor.js");
+  it("defaults to the factory and its parent, or takes an explicit list", () => {
+    expect([...sponsorCreators({ network: { factory: "streak.nolossmeme.testnet" } })]).toEqual([
+      "streak.nolossmeme.testnet",
+      "nolossmeme.testnet",
+    ]);
+    expect([
+      ...sponsorCreators({ SPONSOR_CREATORS: "a.testnet, b.testnet", network: { factory: "f" } }),
+    ]).toEqual(["a.testnet", "b.testnet"]);
+  });
+});

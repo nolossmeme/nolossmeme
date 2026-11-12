@@ -19,17 +19,27 @@ export interface PositionCall {
   label: string;
 }
 
+/** Parsed amount, or null when the text is not a valid amount (".", "1.2.", too many decimals). */
+function parsed(parse: (s: string) => bigint, text: string): bigint | null {
+  try {
+    return parse(text || "0");
+  } catch {
+    return null;
+  }
+}
+
 /** Slippage guard for liquid unstake: accept at least 97% of the principal in NEAR. */
 const MIN_NEAR_BPS = 9_700n;
 
 function depositCall(i: PositionInput): PositionCall | null {
-  const yocto = parseNear(i.amount || "0");
-  if (yocto < i.minDeposit) return null;
+  const yocto = parsed(parseNear, i.amount);
+  if (yocto === null || yocto < i.minDeposit) return null;
   return { call: actions.deposit(i.pool, yocto, i.registered), label: "Deposit" };
 }
 
-function withdrawCall(i: PositionInput): PositionCall {
-  const requested = i.amount ? parseNear(i.amount) : undefined;
+function withdrawCall(i: PositionInput): PositionCall | null {
+  const requested = i.amount ? parsed(parseNear, i.amount) : undefined;
+  if (requested === null || requested === 0n || i.principal === 0n) return null;
   const all = requested === undefined || requested >= i.principal;
   const amount = all ? undefined : requested;
   const value = amount ?? i.principal;
@@ -40,13 +50,14 @@ function withdrawCall(i: PositionInput): PositionCall {
 }
 
 function sponsorCall(i: PositionInput): PositionCall | null {
-  const yocto = parseNear(i.amount || "0");
-  if (yocto < i.minDeposit) return null;
+  const yocto = parsed(parseNear, i.amount);
+  if (yocto === null || yocto < i.minDeposit) return null;
   return { call: actions.fundTreasury(i.pool, yocto), label: "Sponsor" };
 }
 
 function redeemCall(i: PositionInput): PositionCall | null {
-  const requested = i.amount ? parseMeme(i.amount) : i.memeBalance;
+  const requested = i.amount ? parsed(parseMeme, i.amount) : i.memeBalance;
+  if (requested === null) return null;
   const yocto = requested > i.memeBalance ? i.memeBalance : requested;
   if (yocto <= 0n) return null;
   return { call: actions.redeem(i.pool, yocto), label: "Redeem" };

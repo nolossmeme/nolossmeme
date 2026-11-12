@@ -7,7 +7,7 @@ Deadline: **14 Nov 2026, 23:59 UTC**. Form: <https://nearhackathon.com/#apply>.
 - [ ] All PRs merged to `main`, CI green
 - [ ] Testnet pool has at least a few draws in its log (keeper cron running)
 - [ ] `git tag pre-hackathon e774e3b && git tag hackathon-submission <final sha> && git push --tags`
-- [ ] Demo video (60–90 s) recorded: deposit → check-in → draw → winner → redeem → withdraw
+- [x] Demo video recorded (`docs/demo.mp4`, 99 s, narrated): faucet → deposit → check-in → target hit → draw → floor/redeem → launch
 - [ ] Demo post live on X (template below), link pasted into the README header table
 - [ ] NEAR **mainnet** payout account decided (named or 64-char implicit)
 
@@ -26,7 +26,7 @@ Deadline: **14 Nov 2026, 23:59 UTC**. Form: <https://nearhackathon.com/#apply>.
 >
 > @NEARProtocol #NEARHackathon
 
-Attach `docs/demo.mp4` (44 s scripted walkthrough of the hosted app, no wallet) or, better, a screen recording that also shows a wallet deposit, check-in and the draw log, plus the three screenshots in `docs/screenshots/`.
+Attach `docs/demo.mp4` (99 s, narrated by ElevenLabs, built with Remotion in `tools/video`; the deposit, check-ins and the target-hit draw #65 are real testnet transactions) plus the three screenshots in `docs/screenshots/`.
 
 ## Form fields
 

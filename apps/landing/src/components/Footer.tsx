@@ -45,8 +45,13 @@ export function Footer() {
                 </a>
               </li>
               <li>
-                <a className="hover:text-text" href="#how">
+                <a className="hover:text-text" href={`${import.meta.env.BASE_URL}#how`}>
                   How it works
+                </a>
+              </li>
+              <li>
+                <a className="hover:text-text" href={`${import.meta.env.BASE_URL}demo/`}>
+                  Watch the demo
                 </a>
               </li>
             </ul>

@@ -14,6 +14,8 @@ export interface FaucetDeps {
   amountYocto: bigint;
   cooldownMs: number;
   turnstileSecret: string;
+  /** When set, tokens solved on any other hostname are refused. */
+  turnstileHostname?: string;
   /** Sends `amount` yocto to `accountId`; returns the transaction hash. */
   send: (accountId: string, amount: bigint) => Promise<string>;
   /** Looks the account up on chain. */
@@ -47,6 +49,7 @@ export async function verifyTurnstile(
   token: string,
   ip: string | undefined,
   fetchImpl: typeof fetch = fetch,
+  hostname?: string,
 ): Promise<boolean> {
   const form = new URLSearchParams({ secret, response: token });
   if (ip) form.set("remoteip", ip);
@@ -56,8 +59,8 @@ export async function verifyTurnstile(
     signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) return false;
-  const body = (await res.json()) as { success?: boolean };
-  return body.success === true;
+  const body = (await res.json()) as { success?: boolean; hostname?: string };
+  return body.success === true && (!hostname || body.hostname === hostname);
 }
 
 export function createFaucet(deps: FaucetDeps): Hono {
@@ -86,6 +89,7 @@ export function createFaucet(deps: FaucetDeps): Hono {
         token,
         ip === "unknown" ? undefined : ip,
         deps.fetchImpl,
+        deps.turnstileHostname,
       ))
     ) {
       return c.json({ error: "turnstile verification failed" }, 403);

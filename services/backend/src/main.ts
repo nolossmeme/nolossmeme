@@ -73,6 +73,7 @@ async function maybeFaucet(cfg: Config, db: Db): Promise<Hono | undefined> {
     cfg.FAUCET_AMOUNT_NEAR,
     cfg.FAUCET_COOLDOWN_HOURS,
     cfg.FAUCET_DAILY_CAP,
+    cfg.TURNSTILE_HOSTNAME,
   );
 }
 
@@ -147,6 +148,7 @@ async function buildFaucet(
   amountNear: number,
   cooldownHours: number,
   dailyCap: number,
+  turnstileHostname: string | undefined,
 ) {
   const { Account, JsonRpcProvider } = await import("near-api-js");
   type KeyPairString = ConstructorParameters<typeof Account>[2];
@@ -160,6 +162,7 @@ async function buildFaucet(
     cooldownMs: cooldownHours * 3_600_000,
     dailyCap,
     turnstileSecret,
+    ...(turnstileHostname ? { turnstileHostname } : {}),
     send: async (to, amount) => {
       const outcome = await sender.transfer({ receiverId: to, amount });
       return outcome.transaction.hash;

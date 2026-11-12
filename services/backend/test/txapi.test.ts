@@ -77,4 +77,13 @@ describe("TxApi.blocks", () => {
     });
     await expect(api.blocks(["pool"], 1, 2)).rejects.toBeInstanceOf(RateLimited);
   });
+
+  it("fails the range when a transaction is not indexed yet", async () => {
+    const fetchImpl: typeof fetch = (input) =>
+      new URL(input).pathname === "/v0/account"
+        ? json({ account_txs: [{ transaction_hash: "mid", tx_block_height: 1_050 }] })
+        : json({ transactions: [null] });
+    const api = new TxApi("https://tx.example", { rps: 100, fetchImpl });
+    await expect(api.blocks(["pool"], 1_000, 1_100)).rejects.toThrow(/not indexed/);
+  });
 });

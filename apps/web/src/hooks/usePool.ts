@@ -27,7 +27,7 @@ export function useDraws(pool: string | undefined, total: number | undefined) {
 export function useDepositors(pool: string | undefined) {
   return useQuery({
     queryKey: ["pool", pool, "depositors"],
-    queryFn: () => client.getDepositors(pool ?? "", 0, 100),
+    queryFn: () => client.getAllDepositors(pool ?? ""),
     enabled: Boolean(pool),
     refetchInterval: 30_000,
   });

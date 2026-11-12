@@ -13,7 +13,7 @@ import { appLink, client } from "./lib/config";
 export function App() {
   const { data: memes = [] } = useQuery({
     queryKey: ["memes"],
-    queryFn: () => client.getMemes(0, 50),
+    queryFn: () => client.getAllMemes(),
     refetchInterval: 30_000,
   });
   const states = useQueries({

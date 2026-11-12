@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { NoLossMemeClient } from "../client.js";
+import { NoLossMemeClient, pageAll } from "../client.js";
 
 describe("NoLossMemeClient", () => {
   it("routes views to the right contracts and parses bigints", async () => {
@@ -29,5 +29,18 @@ describe("NoLossMemeClient", () => {
       callFunction: () => Promise.resolve(undefined),
     });
     await expect(client.getMemeCount()).rejects.toThrow(/returned nothing/);
+  });
+});
+
+describe("pageAll", () => {
+  it("pages until a short page", async () => {
+    const data = Array.from({ length: 23 }, (_, i) => i);
+    const calls: number[] = [];
+    const all = await pageAll((from, limit) => {
+      calls.push(from);
+      return Promise.resolve(data.slice(from, from + limit));
+    }, 10);
+    expect(all).toEqual(data);
+    expect(calls).toEqual([0, 10, 20]);
   });
 });

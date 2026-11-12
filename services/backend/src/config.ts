@@ -37,6 +37,8 @@ const Env = z.object({
   FAUCET_ACCOUNT_ID: z.string().optional(),
   FAUCET_PRIVATE_KEY: z.string().optional(),
   TURNSTILE_SECRET_KEY: z.string().optional(),
+  /** Hostname the faucet widget runs on; tokens solved elsewhere are refused. */
+  TURNSTILE_HOSTNAME: z.string().optional(),
   FAUCET_AMOUNT_NEAR: z.coerce.number().positive().default(1),
   FAUCET_COOLDOWN_HOURS: z.coerce.number().positive().default(24),
   /** Grants across all accounts per 24 h. */

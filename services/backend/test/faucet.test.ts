@@ -4,7 +4,12 @@ import { describe, expect, it } from "vitest";
 import { createFaucet } from "../src/api/faucet.js";
 import { openDb } from "../src/db/client.js";
 
-async function faucet(turnstileOk = true, slowSend = false, dailyCap?: number) {
+async function faucet(
+  turnstileOk = true,
+  slowSend = false,
+  dailyCap?: number,
+  solvedOn = "app.example",
+) {
   const db = await openDb(":memory:");
   const sent: [string, bigint][] = [];
   let clock = 1_000_000;
@@ -13,6 +18,7 @@ async function faucet(turnstileOk = true, slowSend = false, dailyCap?: number) {
     amountYocto: 10n ** 24n,
     cooldownMs: 3_600_000,
     turnstileSecret: "s",
+    turnstileHostname: "app.example",
     send: async (to, amount) => {
       sent.push([to, amount]);
       if (slowSend) await new Promise((r) => setTimeout(r, 20));
@@ -21,7 +27,9 @@ async function faucet(turnstileOk = true, slowSend = false, dailyCap?: number) {
     ...(dailyCap === undefined ? {} : { dailyCap }),
     accountExists: (id) => Promise.resolve(id !== "ghost.testnet"),
     fetchImpl: () =>
-      Promise.resolve(new Response(JSON.stringify({ success: turnstileOk }), { status: 200 })),
+      Promise.resolve(
+        new Response(JSON.stringify({ success: turnstileOk, hostname: solvedOn }), { status: 200 }),
+      ),
     now: () => clock,
   });
   return { app, sent, tick: (ms: number) => (clock += ms) };
@@ -93,5 +101,12 @@ describe("faucet abuse", () => {
     expect((await claim("a", "1.1.1.1")).status).toBe(200);
     expect((await claim("b", "2.2.2.2")).status).toBe(200);
     expect((await claim("c", "3.3.3.3")).status).toBe(429);
+  });
+
+  it("refuses a token solved on another hostname", async () => {
+    const { app, sent } = await faucet(true, false, undefined, "evil.example");
+    const r = await post(app, { account_id: "alice.testnet", token: "0.valid-token" });
+    expect(r.status).toBe(403);
+    expect(sent).toHaveLength(0);
   });
 });

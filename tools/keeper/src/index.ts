@@ -65,7 +65,7 @@ async function handlePool(
 
 async function main(): Promise<void> {
   const client = new NoLossMemeClient(config);
-  const memes = await client.getMemes(0, 100);
+  const memes = await client.getAllMemes();
   console.log(
     `[keeper] ${networkId} factory=${config.factory} pools=${memes.length} dryRun=${dryRun}`,
   );

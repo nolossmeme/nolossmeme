@@ -18,7 +18,7 @@ Mechanics** (primary), Unstoppable DeFi, Social Money, Open Innovation.
 | Keeper          | [`keeper.nolossmeme.testnet`](https://testnet.nearblocks.io/address/keeper.nolossmeme.testnet), GitHub Actions cron every 15 min                                                                                                                                                                                             |
 | Landing         | **<https://nolossmeme.fun>** (static site, `apps/landing`, served from the VPS; mirror at <https://nolossmeme.github.io/nolossmeme/>)                                                                                                                                                                                        |
 | Web app         | **<https://app.nolossmeme.fun/>** (dApp, `apps/web`); API at <https://api.nolossmeme.fun>; everything deploys from `main` (`deploy/vps`)                                                                                                                                                                                     |
-| Demo post       | _added at submission_ (44 s walkthrough of the hosted app: [`docs/demo.mp4`](docs/demo.mp4))                                                                                                                                                                                                                                 |
+| Demo post       | _added at submission_ (99 s narrated demo with real testnet transactions: [`docs/demo.mp4`](docs/demo.mp4))                                                                                                                                                                                                                  |
 
 <p align="center"><img src="docs/screenshots/meme.png" alt="Pool page" width="800"></p>
 
@@ -79,17 +79,18 @@ Prerequisites: Rust (the `contracts/rust-toolchain.toml` pins 1.96), [`cargo-nea
 
 ## Repository layout
 
-| Path                                                         | What                                                                                             | Stack                                        |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ | -------------------------------------------- |
-| [`contracts/meme-pool`](contracts/meme-pool)                 | One contract per memecoin: vault, tickets, draw, redeem, NEP-141/145/148                         | Rust, near-sdk 5.30, near-contract-standards |
-| [`contracts/factory`](contracts/factory)                     | Launches `<slug>.<factory>`, stores the pool wasm once (frozen, hash public), keeps the registry | Rust                                         |
-| [`contracts/mock-metapool`](contracts/mock-metapool)         | Meta Pool stand-in with a settable price for sandbox tests                                       | Rust                                         |
-| [`contracts/integration-tests`](contracts/integration-tests) | near-sandbox end-to-end tests                                                                    | near-sandbox 0.4, near-api-rs                |
-| [`packages/sdk`](packages/sdk)                               | Typed RPC client, wallet-agnostic transaction builders, contract math mirrors                    | TypeScript, near-api-js 7                    |
-| [`apps/web`](apps/web)                                       | Memes list, pool page, launch form with 60-day projection, how-it-works                          | Vite, React 19, Tailwind 4, near-connect     |
-| [`services/backend`](services/backend)                       | Indexer (FastNEAR transactions API), REST API, snapshot, keeper and sponsor jobs, faucet         | TypeScript, Hono, libsql                     |
-| [`tools/keeper`](tools/keeper)                               | Calls `draw` where due; cron in `.github/workflows/keeper.yml`                                   | TypeScript                                   |
-| [`tools/sim`](tools/sim)                                     | Tokenomics simulation and charts                                                                 | Python                                       |
+| Path                                                         | What                                                                                              | Stack                                        |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| [`contracts/meme-pool`](contracts/meme-pool)                 | One contract per memecoin: vault, tickets, draw, redeem, NEP-141/145/148                          | Rust, near-sdk 5.30, near-contract-standards |
+| [`contracts/factory`](contracts/factory)                     | Launches `<slug>.<factory>`, stores the pool wasm once (frozen, hash public), keeps the registry  | Rust                                         |
+| [`contracts/mock-metapool`](contracts/mock-metapool)         | Meta Pool stand-in with a settable price for sandbox tests                                        | Rust                                         |
+| [`contracts/integration-tests`](contracts/integration-tests) | near-sandbox end-to-end tests                                                                     | near-sandbox 0.4, near-api-rs                |
+| [`packages/sdk`](packages/sdk)                               | Typed RPC client, wallet-agnostic transaction builders, contract math mirrors                     | TypeScript, near-api-js 7                    |
+| [`apps/web`](apps/web)                                       | Memes list, pool page, launch form with 60-day projection, how-it-works                           | Vite, React 19, Tailwind 4, near-connect     |
+| [`services/backend`](services/backend)                       | Indexer (FastNEAR transactions API), REST API, snapshot, keeper and sponsor jobs, faucet          | TypeScript, Hono, libsql                     |
+| [`tools/keeper`](tools/keeper)                               | Calls `draw` where due; cron in `.github/workflows/keeper.yml`                                    | TypeScript                                   |
+| [`tools/sim`](tools/sim)                                     | Tokenomics simulation and charts                                                                  | Python                                       |
+| [`tools/video`](tools/video)                                 | Demo video: scenes over live screenshots, captions, narration (`pnpm capture`, `voice`, `render`) | Remotion 4, ElevenLabs                       |
 
 ### `meme-pool` module map
 

@@ -7,6 +7,7 @@ import { WalletButton } from "./WalletButton";
 const links = [
   { to: "/", label: "Memes" },
   { to: "/launch", label: "Launch" },
+  { to: "/faucet", label: "Faucet" },
   { to: "/how-it-works", label: "How it works" },
 ];
 

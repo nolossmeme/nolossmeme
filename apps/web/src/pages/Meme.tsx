@@ -17,13 +17,12 @@ import {
   type PoolState,
 } from "@nolossmeme/sdk";
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 
 import { ActivityFeed } from "../components/ActivityFeed";
 import { AmountInput } from "../components/AmountInput";
 import { Countdown } from "../components/Countdown";
 import { DrawLog } from "../components/DrawLog";
-import { FaucetCard } from "../components/FaucetCard";
 import { FloorChart } from "../components/FloorChart";
 import { Leaderboard } from "../components/Leaderboard";
 import { SeriesChart } from "../components/SeriesChart";
@@ -161,7 +160,18 @@ export function MemePage() {
         </div>
       </section>
 
-      {faucetEnabled && <FaucetCard accountId={tx.signedAccountId || undefined} />}
+      {faucetEnabled && (
+        <Link
+          to="/faucet"
+          className="card flex items-center justify-between gap-3 p-4 text-sm hover:border-lime/40"
+        >
+          <span>
+            <span className="font-semibold">Need testnet NEAR?</span>{" "}
+            <span className="text-muted">Claim 1 free NEAR a day from the faucet.</span>
+          </span>
+          <span className="text-lime">Open faucet →</span>
+        </Link>
+      )}
 
       {indexerEnabled && (
         <section className="grid lg:grid-cols-[1fr_1.4fr] gap-6">

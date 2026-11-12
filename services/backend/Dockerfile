@@ -15,7 +15,9 @@ RUN corepack enable
 WORKDIR /repo
 ENV NODE_ENV=production DATABASE_URL=file:/data/nolossmeme.db PORT=8787
 COPY --from=build /repo ./
-RUN mkdir -p /data
+# Run unprivileged; the data volume must be owned by node (uid 1000).
+RUN mkdir -p /data && chown node:node /data
+USER node
 VOLUME ["/data"]
 EXPOSE 8787
 CMD ["node", "services/backend/dist/main.js"]

@@ -20,14 +20,16 @@ export function FaucetCard({ accountId }: { accountId: string | undefined }) {
   const [token, setToken] = useState("");
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<string | null>(null);
+  // Turnstile tokens are single-use: remount the widget after every attempt.
+  const [attempt, setAttempt] = useState(0);
   const onToken = useCallback((t: string) => setToken(t), []);
   const { data: info } = useQuery({
     queryKey: ["faucet", "info"],
-    queryFn: async () =>
-      (await fetch(`${INDEXER_URL}/faucet`)).json() as Promise<{
-        amount: string;
-        cooldown_ms: number;
-      }>,
+    queryFn: async () => {
+      const res = await fetch(`${INDEXER_URL}/faucet`);
+      if (!res.ok) throw new Error(`faucet info ${res.status}`);
+      return (await res.json()) as { amount: string; cooldown_ms: number };
+    },
     enabled: faucetEnabled,
     staleTime: 600_000,
   });
@@ -67,6 +69,7 @@ export function FaucetCard({ accountId }: { accountId: string | undefined }) {
     } finally {
       setBusy(false);
       setToken("");
+      setAttempt((n) => n + 1);
     }
   };
 
@@ -95,7 +98,7 @@ export function FaucetCard({ accountId }: { accountId: string | undefined }) {
         </a>
       ) : (
         <>
-          <Turnstile siteKey={SITE_KEY} onToken={onToken} />
+          <Turnstile key={attempt} siteKey={SITE_KEY} onToken={onToken} />
           <button
             className="btn-secondary"
             disabled={!accountId || !token || busy}

@@ -2,6 +2,7 @@ import { NearAmount } from "@nolossmeme/ui";
 import { formatMeme, shortAccount, winChance, type AccountView } from "@nolossmeme/sdk";
 
 import { explorerAccount } from "../lib/client";
+import { by } from "../lib/list";
 
 export function Leaderboard({
   rows,
@@ -15,9 +16,7 @@ export function Leaderboard({
   if (rows.length === 0)
     return <p className="text-sm text-muted">Nobody has deposited yet. Be first.</p>;
   const totalWeight = rows.reduce((acc, [, a]) => acc + BigInt(a.weight), 0n);
-  const sorted = [...rows].sort((a, b) =>
-    BigInt(b[1].principal) > BigInt(a[1].principal) ? 1 : -1,
-  );
+  const sorted = [...rows].sort(by(([, a]) => BigInt(a.principal), -1));
   return (
     <div className="overflow-x-auto scrollbar-thin">
       <table className="w-full text-sm">

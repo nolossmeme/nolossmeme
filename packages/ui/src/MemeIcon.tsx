@@ -18,7 +18,7 @@ export function MemeIcon({
   const style = { width: size, height: size };
   const logo = slug ? LOGOS[slug] : undefined;
   const src = logo ?? icon;
-  if (src && (logo || src.startsWith("data:") || src.startsWith("http"))) {
+  if (src && (logo || src.startsWith("data:image/") || src.startsWith("https://"))) {
     return (
       <img
         src={src}

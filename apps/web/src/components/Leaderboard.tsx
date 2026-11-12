@@ -1,4 +1,5 @@
-import { formatMeme, formatNear, shortAccount, winChance, type AccountView } from "@nolossmeme/sdk";
+import { NearAmount } from "@nolossmeme/ui";
+import { formatMeme, shortAccount, winChance, type AccountView } from "@nolossmeme/sdk";
 
 import { explorerAccount } from "../lib/client";
 
@@ -42,7 +43,9 @@ export function Leaderboard({
                   {shortAccount(id, 24)}
                 </a>
               </td>
-              <td className="py-2 pr-3">{formatNear(a.principal, 2)} Ⓝ</td>
+              <td className="py-2 pr-3">
+                <NearAmount yocto={a.principal} usd />
+              </td>
               <td className="py-2 pr-3">
                 {a.streak > 0 ? `🔥 ${a.streak}` : "—"}
                 {a.checked_in_this_epoch && <span className="text-muted"> ✓</span>}

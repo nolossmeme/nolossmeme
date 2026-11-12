@@ -20,7 +20,7 @@ const CHAPTERS: [number, string][] = [
 
 /** The on-chain steps the video shows, all on NEAR testnet. */
 const TXS: [string, string][] = [
-  ["degen.nolossmeme.testnet deposits 1 Ⓝ", "C44SRCEb43CdiD4mpB5n1RYnzDuaby7D8aeTcN9d6zd9"],
+  ["degen.nolossmeme.testnet deposits 1 NEAR", "C44SRCEb43CdiD4mpB5n1RYnzDuaby7D8aeTcN9d6zd9"],
   ["degen.nolossmeme.testnet checks in", "4wL7aSrpuftZ7QPtUrXTbAvCdim2EUs7W8wbpf6hNxT8"],
   ["nolossmeme.testnet checks in (target 2 / 2)", "GspgWT2KNdm8MXMnTWnWJUvFiAvRYff4QpLz3ymoocqi"],
   ["Draw #65: target hit, 1,000 DOGN minted", "2AVGBXsrgr3gFeD49UBhiikAtdeu7WkXwbceZX3tJJLt"],

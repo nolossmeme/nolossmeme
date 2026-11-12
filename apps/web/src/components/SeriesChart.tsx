@@ -70,7 +70,7 @@ export function SeriesChart({ rows }: { rows: SnapshotRow[] }) {
           yAxisId="left"
           type="monotone"
           dataKey="treasury"
-          name="Treasury Ⓝ"
+          name="Treasury NEAR"
           stroke="#ffc857"
           fill="transparent"
           strokeWidth={2}
@@ -79,7 +79,7 @@ export function SeriesChart({ rows }: { rows: SnapshotRow[] }) {
           yAxisId="right"
           type="monotone"
           dataKey="floor"
-          name="Floor Ⓝ/MEME"
+          name="Floor NEAR/MEME"
           stroke="#a3ff5b"
           fill="transparent"
           strokeWidth={2}

@@ -1,4 +1,4 @@
-import { MemeIcon } from "@nolossmeme/ui";
+import { MemeIcon, NearAmount, UsdHint } from "@nolossmeme/ui";
 import {
   STAKING_MIN_DEPOSIT,
   actions,
@@ -99,16 +99,25 @@ export function MemePage() {
         <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <StatTile
             label="NEAR locked"
-            value={`${formatNear(state.total_principal, 2)} Ⓝ`}
-            hint={plural(state.depositors, "depositor")}
+            value={<NearAmount yocto={state.total_principal} />}
+            hint={
+              <UsdHint
+                yocto={state.total_principal}
+                prefix={plural(state.depositors, "depositor")}
+              />
+            }
           />
           <StatTile
             label="Floor price"
-            value={`${formatNear(state.floor_price, 7)} Ⓝ`}
+            value={<NearAmount yocto={state.floor_price} digits={7} />}
             hint={
-              state.total_funded && BigInt(state.total_funded) > 0n
-                ? `treasury ${formatNear(state.treasury_near, 4)} Ⓝ · ${formatNear(state.total_funded, 2)} Ⓝ from sponsors`
-                : `treasury ${formatNear(state.treasury_near, 4)} Ⓝ`
+              <>
+                <UsdHint yocto={state.floor_price} prefix={`per ${meme.symbol}`} />
+                <br />
+                {state.total_funded && BigInt(state.total_funded) > 0n
+                  ? `treasury ${formatNear(state.treasury_near, 4)} NEAR · ${formatNear(state.total_funded, 2)} NEAR from sponsors`
+                  : `treasury ${formatNear(state.treasury_near, 4)} NEAR`}
+              </>
             }
             accent
           />
@@ -243,7 +252,9 @@ function PositionCard({
       <dl className="grid grid-cols-3 gap-3 text-sm">
         <div>
           <dt className="kicker">Locked</dt>
-          <dd className="font-mono">{formatNear(principal, 3)} Ⓝ</dd>
+          <dd className="font-mono">
+            <NearAmount yocto={principal} digits={3} usd />
+          </dd>
         </div>
         <div>
           <dt className="kicker">{symbol}</dt>
@@ -257,7 +268,9 @@ function PositionCard({
 
       {pending !== undefined && pending > 0n && (
         <div className="rounded-2xl border border-amber/40 bg-amber/10 p-3 text-sm flex items-center justify-between gap-3">
-          <span>{formatNear(pending, 4)} Ⓝ from a NEAR withdrawal is waiting for you.</span>
+          <span>
+            <NearAmount yocto={pending} digits={4} /> from a NEAR withdrawal is waiting for you.
+          </span>
           <button
             className="btn-accent"
             disabled={tx.pending}
@@ -294,13 +307,13 @@ function PositionCard({
 
       {tab === "deposit" && (
         <>
-          <AmountInput value={amount} onChange={setAmount} unit="Ⓝ" />
+          <AmountInput value={amount} onChange={setAmount} unit="NEAR" />
           <p className="text-xs text-muted">
             Staked with Meta Pool. Withdraw any time at face value.
             {me &&
               !me.registered &&
-              " First deposit adds a one-time 0.005 Ⓝ storage fee (refundable)."}
-            {` Minimum ${formatNear(minDeposit, 2)} Ⓝ (Meta Pool's floor).`}
+              " First deposit adds a one-time 0.005 NEAR storage fee (refundable)."}
+            {` Minimum ${formatNear(minDeposit, 2)} NEAR (Meta Pool's floor).`}
           </p>
         </>
       )}
@@ -309,7 +322,7 @@ function PositionCard({
           <AmountInput
             value={amount}
             onChange={setAmount}
-            unit="Ⓝ"
+            unit="NEAR"
             max={formatNear(principal, 6)}
           />
           <label className="flex items-center gap-2 text-sm">
@@ -323,11 +336,11 @@ function PositionCard({
       )}
       {tab === "sponsor" && (
         <>
-          <AmountInput value={amount} onChange={setAmount} unit="Ⓝ" />
+          <AmountInput value={amount} onChange={setAmount} unit="NEAR" />
           <p className="text-xs text-muted">
             Stake NEAR straight into the treasury. It is not principal and cannot be withdrawn: it
             only raises the floor every {symbol} is redeemable at. Minimum{" "}
-            {formatNear(minDeposit, 2)} Ⓝ.
+            {formatNear(minDeposit, 2)} NEAR.
           </p>
         </>
       )}
@@ -341,7 +354,7 @@ function PositionCard({
           />
           <p className="text-xs text-muted">
             Burn {symbol} for its share of the treasury, paid in stNEAR at the floor price
-            {state && ` (${formatNear(state.floor_price, 7)} Ⓝ each)`}.
+            {state && ` (${formatNear(state.floor_price, 7)} NEAR each)`}.
           </p>
         </>
       )}
@@ -372,7 +385,7 @@ function ParamsCard({ state }: { state: PoolState }) {
       "Streak bonus",
       `+${bpsToPercent(p.streak_step_bps)} per day, max ${bpsToPercent(p.max_streak_bonus_bps)}`,
     ],
-    ["Min deposit", `${formatNear(p.min_deposit, 2)} Ⓝ`],
+    ["Min deposit", `${formatNear(p.min_deposit, 2)} NEAR`],
     ["Staking pool", p.staking_pool],
     ["Admin keys", "none, parameters frozen at launch"],
   ];

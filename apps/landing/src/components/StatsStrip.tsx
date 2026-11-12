@@ -1,4 +1,5 @@
-import { formatNear, plural, type MemeInfo, type PoolState } from "@nolossmeme/sdk";
+import { NearAmount, UsdHint } from "@nolossmeme/ui";
+import { plural, type MemeInfo, type PoolState } from "@nolossmeme/sdk";
 
 export function StatsStrip({
   memes,
@@ -12,11 +13,16 @@ export function StatsStrip({
   const draws = states.reduce((a, s) => a + (s?.draws ?? 0), 0);
   const depositors = states.reduce((a, s) => a + (s?.depositors ?? 0), 0);
   const tiles = [
-    { k: "NEAR locked", v: `${formatNear(tvl, 1)} Ⓝ`, hint: "100 % withdrawable", accent: false },
+    {
+      k: "NEAR locked",
+      v: <NearAmount yocto={tvl} digits={1} />,
+      hint: <UsdHint yocto={tvl} prefix="100 % withdrawable" />,
+      accent: false,
+    },
     {
       k: "Treasury backing",
-      v: `${formatNear(treasury, 4)} Ⓝ`,
-      hint: "yield only, never principal",
+      v: <NearAmount yocto={treasury} digits={4} />,
+      hint: <UsdHint yocto={treasury} prefix="yield only, never principal" />,
       accent: true,
     },
     {

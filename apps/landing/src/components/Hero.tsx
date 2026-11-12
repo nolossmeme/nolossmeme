@@ -1,3 +1,6 @@
+import { NearIcon } from "@nolossmeme/ui";
+import type { ReactNode } from "react";
+
 /** MotionSites "Vaultra" globe plate: still + 4 s seamless loop, hotlinked as the prompt instructs. */
 const GLOBE_STILL =
   "https://d2ol7oe51mr4n9.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/f1631235-0a76-464d-8f1d-2c4b48a997d5.jpg";
@@ -6,11 +9,11 @@ const GLOBE_VIDEO =
 
 import { appLink } from "../lib/config";
 
-const chips: { label: string; className: string; delay: string }[] = [
-  { label: "Ⓝ", className: "left-[6%] top-[38%]", delay: "0s" },
+const chips: { label: ReactNode; className: string; delay: string }[] = [
+  { label: <NearIcon />, className: "left-[6%] top-[38%]", delay: "0s" },
   { label: "🐸", className: "right-[8%] top-[30%]", delay: "1.2s" },
   { label: "🐶", className: "left-[14%] top-[66%]", delay: "2.1s" },
-  { label: "stⓃ", className: "right-[12%] top-[62%]", delay: "0.6s" },
+  { label: "stNEAR", className: "right-[12%] top-[62%]", delay: "0.6s" },
 ];
 
 export function Hero() {
@@ -49,7 +52,7 @@ export function Hero() {
       {/* coin chips */}
       {chips.map((c) => (
         <div
-          key={c.label}
+          key={c.delay}
           className={`absolute ${c.className} hidden md:grid place-items-center size-11 rounded-full glass text-sm font-semibold floaty`}
           style={{ animationDelay: c.delay }}
           aria-hidden

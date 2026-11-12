@@ -8,7 +8,6 @@ import {
   formatNear,
   nsToDate,
   nsToSeconds,
-  parseNear,
   plural,
   secondsUntilDraw,
   splitEmission,
@@ -137,6 +136,7 @@ export function MemePage() {
 
       <section className="grid lg:grid-cols-[1fr_1.4fr] gap-6">
         <PositionCard
+          key={pool}
           pool={pool}
           symbol={meme.symbol}
           state={state}
@@ -239,17 +239,17 @@ function PositionCard({
   const canSponsor = state?.total_funded !== undefined;
   const { data: pending } = usePending(pool, tx.signedAccountId || undefined);
 
+  const next = buildPositionCall({
+    pool,
+    tab,
+    amount,
+    asNear,
+    principal,
+    memeBalance: balance,
+    minDeposit,
+    registered: me?.registered ?? false,
+  });
   const submit = async (): Promise<void> => {
-    const next = buildPositionCall({
-      pool,
-      tab,
-      amount,
-      asNear,
-      principal,
-      memeBalance: balance,
-      minDeposit,
-      registered: me?.registered ?? false,
-    });
     if (next && (await tx.send(next.call, next.label))) setAmount("");
   };
 
@@ -306,6 +306,8 @@ function PositionCard({
           (t) => (
             <button
               key={t}
+              type="button"
+              aria-pressed={tab === t}
               className={`tab ${tab === t ? "tab-active" : ""}`}
               onClick={() => setTab(t)}
             >
@@ -333,7 +335,7 @@ function PositionCard({
             value={amount}
             onChange={setAmount}
             unit="NEAR"
-            max={formatNear(principal, 6)}
+            max={formatNear(principal, 24)}
           />
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={asNear} onChange={(e) => setAsNear(e.target.checked)} />
@@ -360,7 +362,7 @@ function PositionCard({
             value={amount}
             onChange={setAmount}
             unit={symbol}
-            max={formatMeme(balance, 6)}
+            max={formatMeme(balance, 18)}
           />
           <p className="text-xs text-muted">
             Burn {symbol} for its share of the treasury, paid in stNEAR at the floor price
@@ -370,12 +372,7 @@ function PositionCard({
       )}
       <button
         className="btn-primary"
-        disabled={
-          tx.pending ||
-          ((tab === "deposit" || tab === "sponsor") &&
-            amount !== "" &&
-            parseNear(amount || "0") < minDeposit)
-        }
+        disabled={tx.pending || (Boolean(tx.signedAccountId) && next === null)}
         onClick={() => void submit()}
       >
         {submitLabel(tx.pending, Boolean(tx.signedAccountId), tab)}

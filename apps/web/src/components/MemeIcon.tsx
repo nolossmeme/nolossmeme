@@ -1,17 +1,24 @@
+/** Artwork for the testnet showcase pools; their on-chain icon is an emoji and cannot change. */
+const LOGOS: Record<string, string> = { dogn: "logos/dogn.png", pepn: "logos/pepn.png" };
+
 export function MemeIcon({
   icon,
   symbol,
+  slug,
   size = 40,
 }: {
   icon: string | null | undefined;
   symbol: string;
+  slug?: string;
   size?: number;
 }) {
   const style = { width: size, height: size };
-  if (icon && (icon.startsWith("data:") || icon.startsWith("http"))) {
+  const logo = slug ? LOGOS[slug] : undefined;
+  const src = logo ? `${import.meta.env.BASE_URL}${logo}` : icon;
+  if (src && (logo || src.startsWith("data:") || src.startsWith("http"))) {
     return (
       <img
-        src={icon}
+        src={src}
         alt=""
         style={style}
         className="rounded-full object-cover bg-surface-2 shrink-0"

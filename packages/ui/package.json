@@ -17,5 +17,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nolossmeme/sdk": "workspace:*"
   }
 }

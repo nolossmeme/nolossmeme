@@ -4,8 +4,8 @@ Deadline: **14 Nov 2026, 23:59 UTC**. Form: <https://nearhackathon.com/#apply>.
 
 ## Before submitting
 
-- [ ] All PRs merged to `main`, CI green
-- [ ] Testnet pool has at least a few draws in its log (keeper cron running)
+- [x] All PRs merged to `main`, CI green
+- [x] Testnet pools have draws in their log (DOGN 80+, keeper in the backend + cron backup)
 - [ ] `git tag pre-hackathon e774e3b && git tag hackathon-submission <final sha> && git push --tags`
 - [x] Demo video recorded (`docs/demo.mp4`, 99 s, narrated): faucet → deposit → check-in → target hit → draw → floor/redeem → launch
 - [ ] Demo post live on X (template below), link pasted into the README header table
@@ -21,7 +21,19 @@ Deadline: **14 Nov 2026, 23:59 UTC**. Form: <https://nearhackathon.com/#apply>.
 > for its share of the treasury: the floor never hits zero, a rug is impossible.
 >
 > Live on testnet, no admin keys, factory + pool contracts, web app, keeper, 60-day sim.
-> Site: nolossmeme.fun · App: app.nolossmeme.fun
+> Site: nolossmeme.fun · App: app.nolossmeme.fun · Demo: nolossmeme.fun/demo
+> Repo: github.com/nolossmeme/nolossmeme
+>
+> @NEARProtocol #NEARHackathon
+
+Short version (fits 280 characters, links count as 23):
+
+> NoLossMeme: memecoins you can't lose on.
+>
+> Deposit NEAR, keep it all. Only staking yield mints the meme. Hit the daily check-in target or the community share burns.
+>
+> Live on NEAR testnet.
+> Demo: nolossmeme.fun/demo
 > Repo: github.com/nolossmeme/nolossmeme
 >
 > @NEARProtocol #NEARHackathon

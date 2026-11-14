@@ -90,7 +90,7 @@ Prerequisites: Rust (the `contracts/rust-toolchain.toml` pins 1.96), [`cargo-nea
 | [`services/backend`](services/backend)                       | Indexer (FastNEAR transactions API), REST API, snapshot, keeper and sponsor jobs, faucet          | TypeScript, Hono, libsql                     |
 | [`tools/keeper`](tools/keeper)                               | Calls `draw` where due; cron in `.github/workflows/keeper.yml`                                    | TypeScript                                   |
 | [`tools/sim`](tools/sim)                                     | Tokenomics simulation and charts                                                                  | Python                                       |
-| [`tools/video`](tools/video)                                 | Demo video: scenes over live screenshots, captions, narration (`pnpm capture`, `voice`, `render`) | Remotion 4, ElevenLabs                       |
+| [`tools/video`](tools/video)                                 | Demo video: scenes over live screenshots, captions, narration (`pnpm capture`, `voice`, `render`) | HyperFrames, ElevenLabs                      |
 
 ### `meme-pool` module map
 

@@ -40,12 +40,12 @@ const PAGES: { name: string; url: string; wait: number; sections: Record<string,
     sections: {
       community: "Community check-ins this epoch",
       position: "Your position",
-      faucet: "Need testnet NEAR?",
       activity: "Pool activity",
       drawlog: "Draw log",
       rules: "Rules (on-chain",
     },
   },
+  { name: "faucet", url: `${APP}/faucet`, wait: 5000, sections: {} },
   { name: "launch", url: `${APP}/launch`, wait: 4000, sections: {} },
 ];
 

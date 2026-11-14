@@ -5,3 +5,4 @@ target
 pnpm-lock.yaml
 contracts
 tools/sim/output
+tools/video/public/

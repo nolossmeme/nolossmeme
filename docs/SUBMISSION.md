@@ -38,7 +38,7 @@ Short version (fits 280 characters, links count as 23):
 >
 > @NEARProtocol #NEARHackathon
 
-Attach `docs/demo.mp4` (99 s, narrated by ElevenLabs, built with Remotion in `tools/video`; the deposit, check-ins and the target-hit draw #65 are real testnet transactions) plus the three screenshots in `docs/screenshots/`.
+Attach `docs/demo.mp4` (99 s, narrated by ElevenLabs, built with HyperFrames in `tools/video`; the deposit, check-ins and the target-hit draw #65 are real testnet transactions) plus the three screenshots in `docs/screenshots/`.
 
 ## Form fields
 

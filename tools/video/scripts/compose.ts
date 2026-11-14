@@ -1,6 +1,7 @@
-/** Writes public/index.html, the HyperFrames composition of the demo, from the narration
- *  (src/script.ts + public/voice/*.json word timings), the screenshots and section boxes in
- *  public/shots, and the indexed draw #65. `pnpm render` turns it into docs/demo.mp4. */
+/** Writes public/index.html, the HyperFrames composition of the demo: one idea per scene on a
+ *  white stage, the headline built word by word in sync with the ElevenLabs narration
+ *  (src/script.ts + public/voice/*.json), UI that types and clicks itself, and one real
+ *  screenshot of the live pool (public/shots). `pnpm render` turns it into docs/demo.mp4. */
 import { readFileSync, writeFileSync } from "node:fs";
 
 import { SCENES, type SceneId } from "../src/script.js";
@@ -13,341 +14,341 @@ interface Word {
   start: number;
   end: number;
 }
-interface Box {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
-interface Draw {
-  txHash: string;
-  data: {
-    epoch: number;
-    checkins: number;
-    winner: string;
-    jackpot: string;
-    checkin_reward_each: string;
-    minted: string;
-    community_streak: number;
-  };
-}
 
-/** Pause after each line of narration, seconds. */
-const GAP = 0.7;
 const W = 1920;
 const H = 1080;
+const r2 = (n: number) => Math.round(n * 100) / 100;
 
 const voices = Object.fromEntries(
   SCENES.map((s) => [s.id, read<{ duration: number; words: Word[] }>(`voice/${s.id}.json`)]),
 ) as Record<SceneId, { duration: number; words: Word[] }>;
-const shots =
-  read<Record<string, { width: number; height: number; boxes: Record<string, Box> }>>(
-    "shots/boxes.json",
-  );
-const draw = read<Draw>("shots/draw.json");
+const drawlogY =
+  read<Record<string, { boxes: Record<string, { y: number }> }>>("shots/boxes.json").dogn!.boxes
+    .drawlog!.y;
 
-const starts = {} as Record<SceneId, number>;
+/** Scene start, when its narration starts, and its length. */
+const start = {} as Record<SceneId, number>;
+const voiceAt = {} as Record<SceneId, number>;
+const len = {} as Record<SceneId, number>;
 let total = 0;
 for (const s of SCENES) {
-  starts[s.id] = total;
-  total += voices[s.id].duration + GAP;
+  start[s.id] = r2(total);
+  voiceAt[s.id] = r2(total + s.lead);
+  len[s.id] = r2(s.lead + voices[s.id].duration + s.tail);
+  total += len[s.id];
 }
-const lenOf = (id: SceneId) => voices[id].duration + GAP;
-const r2 = (n: number) => Math.round(n * 100) / 100;
 
-/** Film time of the first word in `scene` that starts with `word` (case-insensitive). */
+/** Film time of the nth word in `scene`'s narration that starts with `word`. */
 function cue(scene: SceneId, word: string, nth = 1): number {
   let seen = 0;
-  for (const w of voices[scene].words) {
+  for (const w of voices[scene].words)
     if (w.text.toLowerCase().startsWith(word.toLowerCase()) && ++seen === nth)
-      return r2(starts[scene] + w.start);
-  }
+      return r2(voiceAt[scene] + w.start);
   throw new Error(`no "${word}" #${nth} in ${scene}`);
 }
 
-const esc = (s: string) =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-const tokens = (yocto18: string) => Number(BigInt(yocto18) / 10n ** 18n).toLocaleString("en-US");
+const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 // ---- timeline, collected while the markup is built
 const tweens: string[] = [];
-const at = (sel: string, t: number, vars: string, from?: string) =>
-  tweens.push(
-    from
-      ? `tl.fromTo(${JSON.stringify(sel)}, ${from}, ${vars}, ${r2(t)});`
-      : `tl.to(${JSON.stringify(sel)}, ${vars}, ${r2(t)});`,
+/** Effects from the HyperFrames bundled library (public/sfx): peak offset, volume, length (s). */
+const SFX = {
+  click: [0.073, 0.6, 0.36],
+  typing: [0, 0.45, 1.5],
+  pop: [0.12, 0.5, 0.72],
+  "impact-bass-1": [0.073, 0.3, 2.11],
+  chime: [0.418, 0.45, 2.5],
+  "whoosh-short": [0.162, 0.35, 0.57],
+} as const;
+const sounds: { name: keyof typeof SFX; at: number; dur?: number }[] = [];
+/** Plays `name` so its peak lands one frame after the picture at `t`. */
+const sfx = (name: keyof typeof SFX, t: number, dur?: number) =>
+  sounds.push({ name, at: r2(Math.max(0, t - SFX[name][0] + 1 / 30)), dur });
+const q = (sel: string) => JSON.stringify(sel);
+const to = (sel: string, t: number, vars: string) =>
+  tweens.push(`tl.to(${q(sel)}, ${vars}, ${r2(t)});`);
+const fromTo = (sel: string, t: number, from: string, vars: string) =>
+  tweens.push(`tl.fromTo(${q(sel)}, ${from}, ${vars}, ${r2(t)});`);
+/** Fade and lift in; `sound` adds a pop. */
+const pop = (sel: string, t: number, sound = false) => {
+  fromTo(
+    sel,
+    t,
+    `{ opacity: 0, y: 24 }`,
+    `{ opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }`,
   );
-/** Fade and lift `sel` in at `t`. */
-const pop = (sel: string, t: number) =>
-  at(sel, t, `{ opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }`, `{ opacity: 0, y: 28 }`);
-const out = (sel: string, t: number) => at(sel, t, `{ opacity: 0, duration: 0.3 }`);
-
-/** Transform that frames `box` (screenshot pixels) in the stage above the captions. */
-function frame(box: Box, pad = 40, max = 1.6) {
-  const scale = Math.min((W - 220) / (box.w + 2 * pad), 820 / (box.h + 2 * pad), max);
-  return {
-    x: r2(W / 2 - (box.x + box.w / 2) * scale),
-    y: r2(470 - (box.y + box.h / 2) * scale),
-    scale: r2(scale),
-  };
+  if (sound) sfx("pop", t + 0.1);
+};
+/** Scale in from a little smaller. */
+const grow = (sel: string, t: number) =>
+  fromTo(
+    sel,
+    t,
+    `{ opacity: 0, scale: 0.92 }`,
+    `{ opacity: 1, scale: 1, duration: 0.6, ease: "power3.out" }`,
+  );
+/** Button press with a click sound. */
+function press(sel: string, t: number) {
+  to(sel, t, `{ scale: 0.92, duration: 0.09, yoyo: true, repeat: 1, ease: "power1.inOut" }`);
+  sfx("click", t);
 }
-const top: Box = { x: 0, y: 0, w: W, h: 1000 };
-/** Screenshot that moves between framings: [time, box, pad?] steps. */
-function shot(id: string, name: string, steps: [number, Box, number?][]): string {
-  steps.forEach(([t, box, pad], i) => {
-    const f = frame(box, pad);
-    const vars = `{ x: ${f.x}, y: ${f.y}, scale: ${f.scale}`;
-    if (i === 0) at(`#${id} img`, t, `${vars}, duration: 0 }`);
-    else at(`#${id} img`, t, `${vars}, duration: 1.1, ease: "power3.inOut" }`);
-  });
-  return `<div class="shot" id="${id}"><img src="shots/${name}.png" alt="" /></div>`;
+/** Text that types itself: one span per character, shown `cps` characters a second. */
+const typed = (id: string, text: string) => {
+  const chars = [...text].map((c) => '<span class="ch">' + esc(c) + "</span>").join("");
+  return `<span id="${id}">${chars}</span>`;
+};
+const type = (id: string, t: number, cps: number) =>
+  to(`#${id} .ch`, t, `{ opacity: 1, duration: 0, stagger: ${r2(1 / cps)} }`);
+/** Types `text`'s characters with a key burst as long as the typing. */
+const typeWithKeys = (id: string, text: string, t: number, cps = 22) => {
+  type(id, t, cps);
+  sfx("typing", t, Math.min(1.5, r2(text.length / cps + 0.1)));
+};
+
+/** The scene's narration (words [from, until)) as a headline that builds with the voice. */
+function headline(scene: SceneId, style = "", from = 0, until = Infinity): string {
+  const spans = voices[scene].words
+    .map((w, i) => {
+      if (i < from || i >= until) return "";
+      fromTo(
+        `#hl-${scene}-${i}`,
+        voiceAt[scene] + w.start - 0.05,
+        `{ opacity: 0, y: 14 }`,
+        `{ opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }`,
+      );
+      return `<span class="w" id="hl-${scene}-${i}">${esc(w.text)}</span>`;
+    })
+    .filter(Boolean)
+    .join(" ");
+  return `<h1 class="hl" id="hl-${scene}-${from}w" style="${style}">${spans}</h1>`;
 }
 
 function scene(id: SceneId, inner: string): string {
-  const start = r2(starts[id]);
-  at(`#${id}`, start, `{ opacity: 1, duration: 0.4 }`, `{ opacity: 0 }`);
-  return `<section id="${id}" class="scene clip" data-start="${start}" data-duration="${r2(lenOf(id))}">${inner}</section>`;
+  // The first frame is the thumbnail, so the opening scene is on screen at 0 s.
+  if (start[id] > 0) fromTo(`#${id}`, start[id], `{ opacity: 0 }`, `{ opacity: 1, duration: 0.3 }`);
+  return `<section id="${id}" class="scene clip" data-start="${start[id]}" data-duration="${len[id]}">${inner}</section>`;
 }
-
-const chip = (id: string, text: string, style: string, tone = "") =>
-  `<div class="chip ${tone}" id="${id}" style="${style}">${text}</div>`;
 
 // ---- scenes
 const hook = (() => {
-  pop("#h-a", cue("hook", "Most"));
-  at("#h-chart .reveal", cue("hook", "buy"), `{ width: 1100, duration: 1.6, ease: "none" }`);
-  pop("#h-loss", cue("hook", "gone"));
-  out("#h-a", cue("hook", "NoLossMeme") - 0.3);
-  out("#h-chart", cue("hook", "NoLossMeme") - 0.3);
-  out("#h-loss", cue("hook", "NoLossMeme") - 0.3);
-  at(
-    "#h-brand",
-    cue("hook", "NoLossMeme"),
-    `{ opacity: 1, scale: 1, duration: 0.6, ease: "back.out(1.6)" }`,
-    `{ opacity: 0, scale: 0.8 }`,
-  );
-  pop("#h-sub", cue("hook", "launchpad"));
-  pop("#h-safe", cue("hook", "never"));
+  const t = start.hook;
+  typeWithKeys("hk-q", "Buy $MEME at the top", t + 0.2);
+  press("#hk-send", t + 2.0);
+  to("#hk-bar", t + 2.2, `{ opacity: 0, y: -40, duration: 0.35 }`);
+  grow("#hk-chart", t + 2.3);
+  sfx("whoosh-short", t + 2.3);
+  to("#hk-line", t + 2.45, `{ width: 980, duration: 1.4, ease: "none" }`);
+  pop("#hk-loss", cue("hook", "zero") - 0.2, true);
+  to("#hk-chart", voiceAt.hook - 0.1, `{ y: 90, duration: 0.5, ease: "power2.inOut" }`);
   return scene(
     "hook",
-    `<h1 class="big" id="h-a" style="top:150px">Most memecoins end the same way.</h1>
-    <div id="h-chart"><div class="reveal"><svg width="1100" height="420" viewBox="0 0 1100 420">
-      <polyline fill="none" stroke="#ff6b6b" stroke-width="8" stroke-linejoin="round"
-        points="0,380 120,340 220,300 330,250 420,170 500,90 560,40 600,60 640,260 700,370 820,395 1100,405" />
-    </svg></div></div>
-    <div class="loss" id="h-loss">−97%</div>
-    <div id="h-brand"><img src="brand/nlm-white.png" alt="" /><span>NoLossMeme</span></div>
-    <p class="sub" id="h-sub" style="top:620px">A memecoin launchpad on NEAR</p>
-    <div class="pill lime" id="h-safe">Your deposit is never at risk</div>`,
+    `<div class="bar" id="hk-bar"><div class="plus">+</div><div class="field">${typed(
+      "hk-q",
+      "Buy $MEME at the top",
+    )}<div class="send" id="hk-send">↑</div></div></div>
+    <div class="card" id="hk-chart" style="left:410px;top:300px;width:1100px;height:520px">
+      <div class="row-head"><b>$MEME</b><span class="muted">price</span><span class="loss" id="hk-loss">−97%</span></div>
+      <div id="hk-line"><svg width="980" height="360" viewBox="0 0 980 360">
+        <polyline fill="none" stroke="#e5484d" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"
+          points="0,320 110,290 200,250 300,200 380,120 450,50 500,25 540,60 580,230 640,320 760,340 980,345" />
+      </svg></div>
+    </div>
+    ${headline("hook", "top:150px")}`,
   );
 })();
 
-const vault = (() => {
-  const nodes: [string, string, string, string][] = [
-    ["v-you", "You", "deposit NEAR", "deposit"],
-    ["v-meta", "Meta Pool", "staked as stNEAR", "Meta"],
-    ["v-tre", "Treasury", "staking yield + sponsors", "yield"],
-    ["v-meme", "Meme tokens", "every one backed", "backs"],
-  ];
-  nodes.forEach(([id, , , word], i) => {
-    pop(`#${id}`, cue("vault", word));
-    if (i > 0) pop(`#${id}-arrow`, cue("vault", word) - 0.15);
+const flip = (() => {
+  const meet = cue("flip", "Meet");
+  to("#hl-flip-0w", meet - 0.3, `{ y: -250, scale: 0.8, duration: 0.45, ease: "power3.inOut" }`);
+  grow("#fl-brand", meet);
+  sfx("impact-bass-1", meet);
+  return scene(
+    "flip",
+    `${headline("flip", "top:470px", 0, 5)}
+    <div class="brand" id="fl-brand" style="top:440px"><img src="brand/nlm-black.png" alt="" /><span>NoLossMeme</span></div>`,
+  );
+})();
+
+const deposit = (() => {
+  const t = start.deposit;
+  grow("#dp-card", t + 0.1);
+  typeWithKeys("dp-amt", "1.00", t + 0.5, 8);
+  press("#dp-btn", cue("deposit", "Deposit") + 0.1);
+  pop("#dp-ok", cue("deposit", "stays"), true);
+  pop("#dp-wd", cue("deposit", "Withdraw"), true);
+  return scene(
+    "deposit",
+    `${headline("deposit", "top:180px;font-size:64px;max-width:1800px")}
+    <div class="card" id="dp-card" style="left:510px;top:400px;width:900px;padding:34px 40px">
+      <p class="label">Deposit</p>
+      <div class="inrow"><img src="brand/near.png" alt="" class="tok" /><b class="amt">${typed("dp-amt", "1.00")}</b>
+        <span class="muted unit">NEAR</span><div class="btn" id="dp-btn">Deposit</div></div>
+    </div>
+    <div class="pill ok side" id="dp-ok" style="top:690px;left:510px">✓ 1 NEAR · still yours</div>
+    <div class="pill side" id="dp-wd" style="top:690px;left:960px">↩ Withdraw any time</div>`,
+  );
+})();
+
+const yieldScene = (() => {
+  const t = start.yield;
+  grow("#yd-near", t + 0.15);
+  const y = cue("yield", "yield");
+  for (let i = 0; i < 3; i++) {
+    const at = y + i * 0.45;
+    fromTo(
+      `#yd-d${i}`,
+      at,
+      `{ opacity: 0, x: 0 }`,
+      `{ opacity: 1, x: 190, duration: 0.9, ease: "power1.inOut" }`,
+    );
+    to(`#yd-d${i}`, at + 1.0, `{ opacity: 0, duration: 0.2 }`);
+  }
+  grow("#yd-memes", cue("yield", "meme"));
+  return scene(
+    "yield",
+    `${headline("yield", "top:170px")}
+    <div class="card center" id="yd-near" style="left:330px;top:420px;width:420px">
+      <img src="brand/near.png" alt="" class="tok big" /><b>1 NEAR</b><span class="muted">staked · yours</span></div>
+    ${[0, 1, 2].map((i) => `<div class="drop" id="yd-d${i}" data-layout-allow-overlap data-layout-allow-occlusion>+ yield</div>`).join("")}
+    <div class="card center" id="yd-memes" style="left:1170px;top:420px;width:420px">
+      <div class="stack"><img src="logos/dogn.png" alt="" /><img src="logos/pepn.png" alt="" /><img src="logos/shbn.png" alt="" /></div>
+      <b>meme tokens</b><span class="muted">minted from yield</span></div>`,
+  );
+})();
+
+/** Community card: three accounts that light up as they check in. */
+function community(prefix: string, lit: number[], note: string): string {
+  const people = ["A", "B", "C"]
+    .map((p, i) => {
+      const on = lit.includes(i) ? " on" : "";
+      return `<div class="who" id="${prefix}-a${i}"><div class="av${on}">${p}</div><div class="reward" id="${prefix}-r${i}">+150 DOGN</div></div>`;
+    })
+    .join("");
+  const digits = [0, 1, 2, 3]
+    .map(
+      (n) =>
+        `<span id="${prefix}-n${n}" data-layout-allow-overlap data-layout-allow-occlusion>${n}</span>`,
+    )
+    .join("");
+  return `<div class="card" id="${prefix}-card" style="left:460px;top:360px;width:1000px;padding:40px 48px">
+    <div class="row-head"><span class="label">Community check-ins · today</span><span class="pill small" id="${prefix}-pill">${note}</span></div>
+    <div class="count" data-layout-allow-overlap data-layout-allow-occlusion>${digits} / 3</div>
+    <div class="track"><div class="fill" id="${prefix}-fill"></div></div>
+    <div class="people">${people}</div>
+  </div>`;
+}
+
+const checkin = (() => {
+  const t = start.checkin;
+  grow("#ci-card", t + 0.1);
+  const steps = [cue("checkin", "Check") + 0.1, cue("checkin", "Hit"), cue("checkin", "community")];
+  steps.forEach((at, i) => {
+    press(`#ci-a${i} .av`, at);
+    to(`#ci-a${i} .av`, at, `{ backgroundColor: "#0d0d0d", color: "#ffffff", duration: 0.2 }`);
+    to(`#ci-n${i + 1}`, at, `{ opacity: 1, duration: 0 }`);
+    to("#ci-fill", at, `{ width: ${(i + 1) * 300}, duration: 0.25, ease: "power2.out" }`);
   });
-  pop("#v-back", cue("vault", "principal"));
-  at("#v-tre", cue("vault", "treasury"), `{ scale: 1.08, duration: 0.25, yoyo: true, repeat: 1 }`);
+  to("#ci-pill", cue("checkin", "target"), `{ opacity: 1, duration: 0.3 }`);
+  sfx("chime", cue("checkin", "target"));
+  [0, 1, 2].forEach((i) => pop(`#ci-r${i}`, cue("checkin", "everyone") + i * 0.15));
+  pop("#ci-jack", cue("checkin", "paid"), true);
   return scene(
-    "vault",
-    `<p class="kicker" style="top:150px">Where your NEAR goes</p>
-    <div class="flow">${nodes
-      .map(([id, title, sub], i) => {
-        const arrow = i > 0 ? '<div class="arrow" id="' + id + '-arrow">→</div>' : "";
-        const tone = id === "v-tre" ? " lime" : "";
-        return `${arrow}<div class="node${tone}" id="${id}"><b>${title}</b><span>${sub}</span></div>`;
-      })
-      .join("")}</div>
-    <div class="pill" id="v-back" style="top:700px">↩ Principal stays yours · withdraw any time</div>`,
+    "checkin",
+    `${headline("checkin", "top:110px;font-size:64px;max-width:1500px")}
+    ${community("ci", [], "✓ Target hit")}
+    <div class="pill dark" id="ci-jack" style="top:850px">🏆 plus a 700 DOGN jackpot for one raffle winner</div>`,
   );
 })();
 
-const streak = (() => {
-  pop("#s-card", cue("streak", "Depositors"));
-  at("#s-fill", cue("streak", "check"), `{ width: 330, duration: 0.5 }`);
-  at("#s-n", cue("streak", "check"), `{ opacity: 1, duration: 0 }`);
-  at("#s-fill", cue("streak", "target"), `{ width: 660, duration: 0.5 }`);
-  at("#s-n2", cue("streak", "target"), `{ opacity: 1, duration: 0 }`);
-  pop("#s-hit", cue("streak", "target"));
-  pop("#s-jack", cue("streak", "seventy"));
-  pop("#s-comm", cue("streak", "rest"));
-  at("#s-ok", cue("streak", "Miss"), `{ opacity: 0.25, duration: 0.3 }`);
-  pop("#s-miss", cue("streak", "Miss"));
-  pop("#s-burn", cue("streak", "burned"));
+const miss = (() => {
+  const t = start.miss;
+  fromTo("#ms-card", t, `{ opacity: 0 }`, `{ opacity: 1, duration: 0.3 }`);
+  to("#ms-pill", cue("miss", "Miss"), `{ opacity: 1, duration: 0.3 }`);
+  [0, 1, 2].forEach((i) => to(`#ms-r${i}`, cue("miss", "burns"), `{ opacity: 1, duration: 0.25 }`));
+  pop("#ms-burn", cue("miss", "burns"), true);
   return scene(
-    "streak",
-    `<p class="kicker" style="top:110px">Streak rules · one epoch</p>
-    <div class="card" id="s-card" style="left:180px;top:220px;width:760px">
-      <p class="label">Community check-ins this epoch</p>
-      <div class="count"><span id="s-n0">0</span><span id="s-n">1</span><span id="s-n2">2</span> / 2</div>
-      <div class="bar"><div id="s-fill"></div></div>
-      <div class="pill lime small" id="s-hit">Target hit</div>
-    </div>
-    <div id="s-ok">
-      <div class="card" id="s-jack" style="left:1010px;top:220px;width:730px">
-        <p class="label">70% jackpot</p><b class="num lime">1 raffle winner</b>
-        <span class="muted">tickets weighted by streak</span>
-      </div>
-      <div class="card" id="s-comm" style="left:1010px;top:470px;width:730px">
-        <p class="label">30% community</p><b class="num">split among check-ins</b>
-        <span class="muted">everyone who showed up</span>
-      </div>
-    </div>
-    <div class="card red" id="s-miss" style="left:180px;top:640px;width:760px">
-      <p class="label">Target missed</p><b class="num">community share burns</b>
-      <span class="pill red small" id="s-burn">🔥 streak resets to 0</span>
-    </div>`,
+    "miss",
+    `${headline("miss", "top:150px")}
+    ${community("ms", [0], "Target missed")}
+    <div class="pill red" id="ms-burn" style="top:850px">🔥 community share burned · streak resets</div>`,
   );
 })();
 
 const live = (() => {
-  const home = shots.home!.boxes;
-  const dogn = shots.dogn!.boxes;
-  const t0 = starts.live;
-  const html = [
-    shot("l-home", "home", [
-      [t0, top],
-      [cue("live", "DOGN") + 0.2, { x: 288, y: home.pools!.y, w: 1344, h: home.pools!.h }, 40],
-    ]),
-    shot("l-faucet", "faucet", [
-      [t0, { x: 556, y: 120, w: 808, h: 560 }],
-      [cue("live", "faucet") - 0.6, { x: 556, y: 340, w: 808, h: 320 }, 30],
-    ]),
-    shot("l-dogn", "dogn", [
-      [t0, top],
-      [cue("live", "deposits"), dogn.position!, 40],
-      [cue("live", "Two"), dogn.community!, 40],
-      [cue("live", "picked"), { ...dogn.activity!, h: 720 }, 30],
-    ]),
-  ].join("");
-  at("#l-faucet", cue("live", "grabs"), `{ opacity: 1, duration: 0.35 }`, `{ opacity: 0 }`);
-  at("#l-dogn", cue("live", "deposits") - 0.4, `{ opacity: 1, duration: 0.35 }`, `{ opacity: 0 }`);
-  pop("#l-c1", cue("live", "testnet"));
-  out("#l-c1", cue("live", "grabs"));
-  pop("#l-c2", cue("live", "grabs") + 0.4);
-  out("#l-c2", cue("live", "deposits") - 0.4);
-  pop("#l-c3", cue("live", "deposits") + 0.5);
-  out("#l-c3", cue("live", "Two"));
-  pop("#l-c4", cue("live", "target"));
-  out("#l-c4", cue("live", "picked"));
-  pop("#l-c5", cue("live", "indexer"));
+  const t = start.live;
+  grow("#lv-win", t + 0.1);
+  sfx("whoosh-short", t + 0.1);
+  to(
+    "#lv-shot",
+    cue("live", "Every") - 0.2,
+    `{ y: ${r2(-(drawlogY - 120) * (1280 / 1920))}, duration: 1.4, ease: "power3.inOut" }`,
+  );
+  const names = ["dogn", "pepn", "shbn"];
+  names.forEach((_, i) => {
+    const at = t + 0.3 + i * 1.3;
+    if (i > 0) to(`#lv-t${i - 1}`, at - 0.05, `{ opacity: 0, y: -30, duration: 0.3 }`);
+    fromTo(`#lv-t${i}`, at, `{ opacity: 0, y: 30 }`, `{ opacity: 1, y: 0, duration: 0.35 }`);
+  });
+  const ticks = names
+    .map(
+      (n, i) =>
+        `<span class="tick" id="lv-t${i}" data-layout-allow-overlap data-layout-allow-occlusion><img src="logos/${n}.png" alt="" />$${n.toUpperCase()}</span>`,
+    )
+    .join("");
   return scene(
     "live",
-    `${html}
-    ${chip("l-c1", "3 live pools · DOGN, PEPN, SHBN", "left:120px;top:850px")}
-    ${chip("l-c2", "Turnstile-gated faucet · 1 NEAR / day", "left:120px;top:850px")}
-    ${chip("l-c3", "deposit 1 NEAR · daily check-in", "left:120px;top:850px")}
-    ${chip("l-c4", "2 / 2 check-ins · target hit", "left:120px;top:850px", "lime")}
-    ${chip("l-c5", "indexed in seconds", "left:120px;top:850px")}`,
+    `<div class="carousel">${ticks}<b>live on NEAR testnet</b></div>
+    <div class="win" id="lv-win"><div class="chrome"><i></i><i></i><i></i><span>app.nolossmeme.fun/m/dogn</span></div>
+      <div class="view"><img id="lv-shot" src="shots/dogn.png" alt="" /></div></div>
+    ${headline("live", "top:975px;font-size:44px;font-weight:500", 5)}`,
   );
 })();
 
-const drawScene = (() => {
-  const d = draw.data;
-  const rows: [string, string, string, string][] = [
-    ["d-r1", "Target", `hit · ${d.checkins} / 2 check-ins`, "Target"],
-    ["d-r2", "Minted", `${tokens(d.minted)} DOGN`, "thousand"],
-    ["d-r3", "Jackpot", `${tokens(d.jackpot)} DOGN → ${d.winner}`, "jackpot"],
-    ["d-r4", "Check-ins", `${d.checkins} × ${tokens(d.checkin_reward_each)} DOGN`, "both"],
-    ["d-r5", "Transaction", `${draw.txHash.slice(0, 22)}…`, "verifiable"],
-  ];
-  pop("#d-card", cue("draw", "keeper"));
-  for (const [id, , , word] of rows) pop(`#${id}`, cue("draw", word));
-  at("#d-no", cue("draw", "sixty"), `{ scale: 1.15, duration: 0.25, yoyo: true, repeat: 1 }`);
+const launch = (() => {
+  const t = start.launch;
+  grow("#la-card", t + 0.1);
+  grow("#la-img img", t + 0.45);
+  typeWithKeys("la-name", "Shiba of NEAR", t + 0.7, 20);
+  typeWithKeys("la-tick", "SHBN", t + 1.45, 10);
+  press("#la-btn", cue("launch", "click"));
+  pop("#la-ok", cue("launch", "click") + 0.35, true);
   return scene(
-    "draw",
-    `<div class="card wide" id="d-card">
-      <div class="head"><img src="logos/dogn.png" alt="" /><b>Draw <span id="d-no">#${d.epoch}</span></b>
-        <span class="pill lime small">target hit</span><span class="muted">dogn.streak.nolossmeme.testnet</span></div>
-      ${rows
-        .map(
-          ([id, k, v]) =>
-            `<div class="row" id="${id}"><span class="muted">${k}</span><b>${esc(v)}</b></div>`,
-        )
-        .join("")}
-      <p class="muted foot">community streak → ${d.community_streak} · keeper.nolossmeme.testnet triggered it</p>
-    </div>`,
-  );
-})();
-
-const floor = (() => {
-  const stats: Box = { x: 288, y: 255, w: 1344, h: 190 };
-  const html = shot("f-dogn", "dogn", [
-    [starts.floor, top],
-    [cue("floor", "every"), stats, 30],
-  ]);
-  pop("#f-c1", cue("floor", "floor"));
-  pop("#f-c2", cue("floor", "Redeem"));
-  pop("#f-c3", cue("floor", "withdraw"));
-  return scene(
-    "floor",
-    `${html}
-    ${chip("f-c1", "floor = treasury ÷ supply · never zero", "left:120px;top:740px", "lime")}
-    ${chip("f-c2", "redeem tokens → stNEAR", "left:120px;top:820px")}
-    ${chip("f-c3", "withdraw your deposit any time", "left:760px;top:820px")}`,
+    "launch",
+    `${headline("launch", "top:140px")}
+    <div class="card" id="la-card" style="left:560px;top:300px;width:800px;padding:40px">
+      <div class="inrow"><div class="pic" id="la-img"><img src="logos/shbn.png" alt="" /></div>
+        <div class="fields"><div class="fieldbox"><span class="label">Name</span><b>${typed("la-name", "Shiba of NEAR")}</b></div>
+        <div class="fieldbox"><span class="label">Ticker</span><b>${typed("la-tick", "SHBN")}</b></div></div></div>
+      <div class="btn wide" id="la-btn">Launch</div>
+    </div>
+    <div class="pill ok" id="la-ok" style="top:820px">✓ shbn.streak.nolossmeme.testnet is live</div>`,
   );
 })();
 
 const outro = (() => {
-  const html = shot("o-launch", "launch", [
-    [starts.outro, top],
-    [cue("outro", "launch") + 0.3, { x: 556, y: 130, w: 808, h: 640 }, 30],
-  ]);
-  pop("#o-c1", cue("outro", "factory"));
-  at("#o-end", cue("outro", "NoLossMeme") - 0.2, `{ opacity: 1, duration: 0.5 }`, `{ opacity: 0 }`);
-  pop("#o-tag", cue("outro", "memecoins"));
-  pop("#o-url", cue("outro", "Try"));
+  grow("#ot-brand", start.outro + 0.1);
+  pop("#ot-url", cue("outro", "lose"));
+  pop("#ot-near", cue("outro", "lose") + 0.3);
   return scene(
     "outro",
-    `${html}
-    ${chip("o-c1", "picture, name, ticker → one transaction", "left:120px;top:850px", "lime")}
-    <div id="o-end">
-      <div class="brand"><img src="brand/nlm-white.png" alt="" /><span>NoLossMeme</span></div>
-      <p class="sub" id="o-tag" style="top:600px">Memecoins you can't lose on.</p>
-      <div id="o-url"><b>app.nolossmeme.fun</b><span>nolossmeme.fun/demo · github.com/nolossmeme/nolossmeme</span></div>
-    </div>`,
+    `<div class="brand" id="ot-brand" style="top:300px"><img src="brand/nlm-black.png" alt="" /><span>NoLossMeme</span></div>
+    ${headline("outro", "top:560px;font-weight:500;color:#6e6e73", 1)}
+    <div class="pill dark" id="ot-url" style="top:720px">app.nolossmeme.fun</div>
+    <p class="small-note" id="ot-near">Built on NEAR · no admin keys · open source</p>`,
   );
 })();
 
-// ---- narration and captions
-const audio = SCENES.map(
-  (s) =>
-    `<audio id="vo-${s.id}" src="voice/${s.id}.mp3" data-start="${r2(starts[s.id])}" data-duration="${r2(
-      voices[s.id].duration,
-    )}"></audio>`,
-).join("\n");
-
-const captions: string[] = [];
-for (const s of SCENES) {
-  let chunk: Word[] = [];
-  /** Start of the word after the chunk, so a caption never runs into the next one. */
-  let next: number | undefined;
-  const flush = () => {
-    if (!chunk.length) return;
-    const t = r2(starts[s.id] + chunk[0]!.start);
-    const end = r2(starts[s.id] + Math.min(chunk.at(-1)!.end + 0.15, next ?? Infinity));
-    captions.push(
-      `<div class="cap clip" id="cap-${captions.length}" data-start="${t}" data-duration="${r2(end - t)}">${esc(
-        chunk.map((w) => w.text).join(" "),
-      )}</div>`,
-    );
-    chunk = [];
-  };
-  const words = voices[s.id].words;
-  for (const [i, w] of words.entries()) {
-    chunk.push(w);
-    next = words[i + 1]?.start;
-    if (/[.,:;!?]$/.test(w.text) || chunk.length >= 7) flush();
-  }
-  flush();
-}
+// ---- audio: narration plus the effects
+const audio = [
+  ...SCENES.map(
+    (s) =>
+      `<audio id="vo-${s.id}" src="voice/${s.id}.mp3" data-start="${voiceAt[s.id]}" data-duration="${r2(voices[s.id].duration)}"></audio>`,
+  ),
+  ...sounds.map(
+    ({ name, at, dur }, i) =>
+      `<audio id="sfx-${i}" src="sfx/${name}.mp3" data-start="${at}" data-duration="${dur ?? SFX[name][2]}" data-volume="${SFX[name][1]}"></audio>`,
+  ),
+].join("\n");
 
 const DUR = r2(total);
 const html = `<!doctype html>
@@ -356,85 +357,101 @@ const html = `<!doctype html>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=${W}, height=${H}" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
 <style>
-:root { --bg:#050507; --surface:#0c0c12; --border:#1f1f2a; --text:#f5f5f8; --muted:#9a9aae;
-  --lime:#a3ff5b; --red:#ff6b6b; --sans:"Inter",sans-serif; --mono:"JetBrains Mono",monospace; }
+:root { --ink:#0d0d0d; --muted:#6e6e73; --line:#e8e8ed; --soft:#f4f4f6; --ok:#1f8a3b; --red:#e5484d; }
 * { margin:0; padding:0; box-sizing:border-box; }
-html, body { width:${W}px; height:${H}px; overflow:hidden; background:var(--bg); color:var(--text); font-family:var(--sans); }
-#root { position:relative; width:100%; height:100%; overflow:hidden;
-  background: radial-gradient(1200px 600px at 50% -10%, rgba(163,255,91,.10), transparent 60%), var(--bg); }
-.scene { position:absolute; inset:0; overflow:hidden; }
-.shot { position:absolute; inset:0; overflow:hidden; background:var(--bg); }
-.shot img { position:absolute; left:0; top:0; width:${W}px; transform-origin:0 0; }
-.big { position:absolute; left:0; right:0; text-align:center; font-size:84px; font-weight:500; letter-spacing:-.03em; }
-.sub { position:absolute; left:0; right:0; text-align:center; font-size:44px; color:var(--muted); font-weight:300; }
-.kicker { position:absolute; left:0; right:0; text-align:center; font-family:var(--mono); font-size:26px;
-  letter-spacing:.2em; text-transform:uppercase; color:var(--lime); }
-#h-chart { position:absolute; left:410px; top:330px; width:1100px; height:420px; }
-#h-chart .reveal { width:0; height:420px; overflow:hidden; }
-.loss { position:absolute; left:1150px; top:470px; font-family:var(--mono); font-size:88px; color:var(--red); font-weight:600; }
-#h-brand, .brand { position:absolute; left:0; right:0; top:330px; display:flex; justify-content:center; align-items:center; gap:36px; }
-#h-brand img, .brand img { height:180px; }
-#h-brand span, .brand span { font-size:150px; font-weight:600; letter-spacing:-.04em; }
-.pill { position:absolute; left:0; right:0; margin:0 auto; width:fit-content; padding:18px 40px; border-radius:999px;
-  border:1px solid var(--border); background:var(--surface); font-size:36px; white-space:nowrap; }
-#h-safe { top:760px; }
-.pill.lime { color:#050507; background:var(--lime); border-color:var(--lime); font-weight:600; }
-.pill.red { color:var(--red); border-color:rgba(255,107,107,.5); }
-.pill.small { position:static; margin:22px 0 0; display:inline-block; width:auto; font-size:24px; padding:8px 22px; }
-.flow { position:absolute; left:0; right:0; top:330px; display:flex; justify-content:center; align-items:center; gap:26px; }
-.node { width:330px; padding:40px 30px; border-radius:28px; background:var(--surface); border:1px solid var(--border); text-align:center; }
-.node b { display:block; font-size:40px; font-weight:600; }
-.node span { display:block; margin-top:10px; font-size:24px; color:var(--muted); }
-.node.lime { border-color:var(--lime); box-shadow:0 0 60px rgba(163,255,91,.18); }
-.arrow { font-size:56px; color:var(--lime); }
-#v-back { top:640px; font-size:32px; }
-.card { position:absolute; padding:36px 44px; border-radius:28px; background:var(--surface); border:1px solid var(--border); }
-.card.red { border-color:rgba(255,107,107,.45); }
-.card .label { font-family:var(--mono); font-size:22px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
-.card .num { display:block; margin-top:14px; font-size:44px; font-weight:600; }
-.card .muted, .muted { color:var(--muted); font-size:26px; }
-.lime { color:var(--lime); }
-.count { position:relative; margin-top:14px; font-family:var(--mono); font-size:96px; }
-#s-n, #s-n2 { position:absolute; left:0; opacity:0; background:var(--surface); }
-.bar { margin-top:20px; width:660px; height:16px; border-radius:99px; background:#1a1a24; overflow:hidden; }
-#s-fill { width:0; height:100%; background:var(--lime); }
-.card.wide { left:260px; top:130px; width:1400px; }
-.card .head { display:flex; align-items:center; gap:22px; margin-bottom:22px; }
-.card .head img { width:72px; height:72px; border-radius:50%; }
-.card .head b { font-size:52px; font-weight:600; }
-.card .head .pill.small { margin-top:0; }
-#d-no { display:inline-block; }
-.row { display:flex; justify-content:space-between; padding:20px 0; border-top:1px solid var(--border); font-size:34px; }
-.row b { font-family:var(--mono); font-weight:600; }
-.foot { margin-top:18px; font-size:24px; }
-.chip { position:absolute; padding:14px 28px; border-radius:16px; background:rgba(12,12,18,.92);
-  border:1px solid var(--border); font-size:32px; font-weight:500; box-shadow:0 20px 50px rgba(0,0,0,.5); }
-.chip.lime { border-color:var(--lime); color:var(--lime); }
-#o-end { position:absolute; inset:0; background:var(--bg); }
-#o-url { position:absolute; left:0; right:0; top:740px; text-align:center; }
-#o-url b { display:block; font-family:var(--mono); font-size:56px; color:var(--lime); }
-#o-url span { display:block; margin-top:18px; font-size:28px; color:var(--muted); }
-.cap { position:absolute; left:0; right:0; bottom:48px; margin:0 auto; width:fit-content; max-width:1600px; padding:10px 26px; border-radius:14px; background:rgba(5,5,7,.78); text-align:center; font-size:40px; font-weight:500;
-  line-height:1.25; text-shadow:0 2px 12px #000, 0 0 2px #000; z-index:10; }
-#logo { position:absolute; left:56px; top:44px; display:flex; align-items:center; gap:14px; font-size:28px; font-weight:600; z-index:10; }
-#logo img { height:40px; }
-#prog { position:absolute; left:0; bottom:0; height:6px; width:0; background:var(--lime); z-index:10; }
+html, body { width:${W}px; height:${H}px; overflow:hidden; background:#fff; color:var(--ink); font-family:"Inter",sans-serif; }
+#root { position:relative; width:100%; height:100%; overflow:hidden; background:#fff; }
+.scene { position:absolute; inset:0; overflow:hidden; background:#fff; }
+.hl { position:absolute; left:0; right:0; margin:0 auto; max-width:1600px; text-align:center; font-size:76px;
+  font-weight:600; letter-spacing:-.035em; line-height:1.12; }
+.hl .w { display:inline-block; opacity:0; }
+.ch { opacity:0; }
+.muted { color:var(--muted); }
+.label { font-size:28px; font-weight:500; color:var(--muted); }
+.bar { position:absolute; left:460px; top:480px; width:1000px; height:120px; display:flex; align-items:center; gap:22px; }
+.plus { width:76px; height:76px; border-radius:50%; background:var(--soft); display:grid; place-items:center; font-size:44px; color:var(--muted); }
+.field { flex:1; height:100%; border-radius:60px; background:var(--soft); display:flex; align-items:center; padding:0 120px 0 44px;
+  font-size:44px; font-weight:500; position:relative; }
+.send { position:absolute; right:22px; top:22px; width:76px; height:76px; border-radius:50%; background:var(--ink);
+  color:#fff; display:grid; place-items:center; font-size:40px; font-weight:700; }
+.card { position:absolute; background:#fff; border:1px solid var(--line); border-radius:36px; padding:36px 44px;
+  box-shadow:0 30px 80px rgba(0,0,0,.08); }
+.card.center { display:flex; flex-direction:column; align-items:center; gap:10px; text-align:center; }
+.card.center b { font-size:46px; font-weight:600; letter-spacing:-.02em; }
+.card.center .muted { font-size:30px; }
+.row-head { display:flex; align-items:center; gap:18px; }
+.row-head b { font-size:40px; font-weight:600; }
+.row-head .muted { font-size:28px; }
+.loss { margin-left:auto; font-family:"JetBrains Mono",monospace; font-size:64px; color:var(--red); font-weight:500; }
+#hk-line { width:0; height:360px; overflow:hidden; margin-top:30px; }
+.brand { position:absolute; left:0; right:0; top:400px; display:flex; justify-content:center; align-items:center; gap:40px; }
+.brand img { height:200px; }
+.brand span { font-size:150px; font-weight:700; letter-spacing:-.05em; }
+.inrow { display:flex; align-items:center; gap:24px; margin-top:14px; }
+.tok { width:84px; height:84px; border-radius:50%; }
+.tok.big { width:120px; height:120px; }
+.amt { font-family:"JetBrains Mono",monospace; font-size:84px; font-weight:500; min-width:220px; }
+.unit { font-size:36px; }
+.btn { margin-left:auto; padding:24px 46px; border-radius:999px; background:var(--ink); color:#fff; font-size:34px; font-weight:600; }
+.btn.wide { margin:34px 0 0; text-align:center; }
+.pill { position:absolute; left:0; right:0; margin:0 auto; width:fit-content; padding:18px 36px; border-radius:999px;
+  background:var(--soft); font-size:32px; font-weight:500; white-space:nowrap; }
+.pill.side { right:auto; margin:0; }
+.pill.ok { background:#e9f7ee; color:var(--ok); }
+.pill.red { background:#fdecec; color:var(--red); }
+.pill.dark { background:var(--ink); color:#fff; }
+.pill.small { position:static; margin:0 0 0 auto; padding:10px 24px; font-size:28px; opacity:0; }
+#ci-pill { background:#e9f7ee; color:var(--ok); }
+#ms-pill { background:#fdecec; color:var(--red); }
+.drop { position:absolute; left:790px; top:560px; padding:12px 24px; border-radius:999px; background:#e9f7ee; color:var(--ok);
+  font-size:28px; font-weight:600; opacity:0; }
+.stack { display:flex; }
+.stack img { width:110px; height:110px; border-radius:50%; border:6px solid #fff; margin-left:-26px; }
+.stack img:first-child { margin-left:0; }
+.count { position:relative; margin-top:16px; font-family:"JetBrains Mono",monospace; font-size:96px; font-weight:500; }
+.count span { background:#fff; }
+.count span + span { position:absolute; left:0; opacity:0; }
+#ms-n1 { opacity:1; }
+.track { margin-top:18px; height:16px; border-radius:99px; background:var(--soft); overflow:hidden; }
+.fill { width:0; height:100%; background:var(--ink); }
+#ms-fill { width:300px; background:var(--red); }
+.people { display:flex; gap:80px; margin-top:44px; }
+.who { display:flex; align-items:center; gap:20px; }
+.av { width:84px; height:84px; border-radius:50%; background:var(--soft); color:var(--muted); display:grid; place-items:center;
+  font-size:36px; font-weight:600; }
+.av.on { background:var(--ink); color:#fff; }
+.reward { font-family:"JetBrains Mono",monospace; font-size:28px; color:var(--ok); opacity:0; }
+#ms-card .reward { color:var(--red); text-decoration:line-through; }
+.carousel { position:absolute; left:0; right:0; top:80px; height:90px; }
+.carousel .tick { position:absolute; right:calc(50% + 40px); top:6px; display:flex; align-items:center; gap:14px;
+  padding:10px 28px 10px 12px; border-radius:999px; background:var(--soft); font-size:44px; font-weight:600; opacity:0; }
+.carousel .tick img { width:58px; height:58px; border-radius:50%; }
+.carousel b { position:absolute; left:calc(50% - 10px); top:14px; font-size:56px; font-weight:600; letter-spacing:-.03em; }
+.win { position:absolute; left:320px; top:210px; width:1280px; height:740px; border-radius:28px; overflow:hidden;
+  border:1px solid var(--line); box-shadow:0 40px 100px rgba(0,0,0,.14); background:#050507; }
+.chrome { height:56px; background:#f4f4f6; display:flex; align-items:center; gap:10px; padding:0 22px; }
+.chrome i { width:14px; height:14px; border-radius:50%; background:#d9d9de; }
+.chrome span { margin:0 auto; font-size:28px; color:var(--muted); padding-right:60px; }
+.view { position:relative; height:684px; overflow:hidden; }
+#lv-shot { position:absolute; left:0; top:0; width:1280px; }
+.pic { width:150px; height:150px; border-radius:50%; background:var(--soft); overflow:hidden; flex-shrink:0; }
+.pic img { width:100%; height:100%; }
+.fields { flex:1; display:flex; flex-direction:column; gap:16px; }
+.fieldbox { border:1px solid var(--line); border-radius:20px; padding:14px 22px; }
+.fieldbox b { display:block; font-size:36px; font-weight:600; margin-top:4px; min-height:44px; }
+.small-note { position:absolute; left:0; right:0; top:860px; text-align:center; font-size:30px; color:var(--muted); }
 </style>
 </head>
 <body>
 <div id="root" data-composition-id="main" data-start="0" data-duration="${DUR}" data-width="${W}" data-height="${H}">
-<div id="logo" class="clip" data-start="${r2(starts.vault)}" data-duration="${r2(starts.live - starts.vault)}"><img src="brand/nlm-white.png" alt="" />NoLossMeme</div>
-${[hook, vault, streak, live, drawScene, floor, outro].join("\n")}
-${captions.join("\n")}
-<div id="prog" class="clip" data-start="0" data-duration="${DUR}"></div>
+${[hook, flip, deposit, yieldScene, checkin, miss, live, launch, outro].join("\n")}
 ${audio}
 </div>
 <script>
 const tl = gsap.timeline({ paused: true });
-tl.to("#prog", { width: ${W}, duration: ${DUR}, ease: "none" }, 0);
 ${tweens.join("\n")}
 window.__timelines = window.__timelines || {};
 window.__timelines["main"] = tl;
@@ -444,4 +461,7 @@ tl.seek(0);
 </html>
 `;
 writeFileSync(new URL("index.html", PUB), html);
-console.log(`public/index.html: ${DUR}s, ${captions.length} captions, ${tweens.length} tweens`);
+console.log(
+  `public/index.html: ${DUR}s, ${tweens.length} tweens, ${sounds.length} sounds; scene starts`,
+  JSON.stringify(start),
+);

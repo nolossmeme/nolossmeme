@@ -6,9 +6,9 @@ Deadline: **14 Nov 2026, 23:59 UTC**. Form: <https://nearhackathon.com/#apply>.
 
 - [x] All PRs merged to `main`, CI green
 - [x] Testnet pools have draws in their log (DOGN 80+, keeper in the backend + cron backup)
-- [ ] `git tag pre-hackathon e774e3b && git tag hackathon-submission <final sha> && git push --tags`
+- [x] `git tag pre-hackathon e774e3b && git tag hackathon-submission <final sha> && git push --tags`
 - [x] Demo video recorded (`docs/demo.mp4`, 46 s, narrated): problem → deposit → yield → check-in target → burn → live pool → launch
-- [ ] Demo post live on X (template below), link pasted into the README header table
+- [x] Demo post live on X (template below), link pasted into the README header table
 - [ ] NEAR **mainnet** payout account decided (named or 64-char implicit)
 
 ## Demo post (X)
@@ -42,15 +42,15 @@ Attach `docs/demo.mp4` (46 s, narrated by ElevenLabs, built with HyperFrames in 
 
 ## Form fields
 
-| Field                    | Value                                    |
-| ------------------------ | ---------------------------------------- |
-| Project name             | NoLossMeme                               |
-| Tracks                   | `memecoins`, `defi`, `social`, `open`    |
-| Repository               | https://github.com/nolossmeme/nolossmeme |
-| Demo post                | _X link_                                 |
-| Team size                | 1                                        |
-| Team lead / contact      | _fill in_                                |
-| Payout account (mainnet) | _fill in_                                |
+| Field                    | Value                                                            |
+| ------------------------ | ---------------------------------------------------------------- |
+| Project name             | NoLossMeme                                                       |
+| Tracks                   | `memecoins`, `defi`, `social`, `open`                            |
+| Repository               | https://github.com/nolossmeme/nolossmeme                         |
+| Demo post                | https://x.com/ifajaarrr/status/2121641550186958940               |
+| Team size                | 1                                                                |
+| Team lead / contact      | _fill in_                                                        |
+| Payout account (mainnet) | 3ce4b84af1a38dc9787e6f2c12bfdc87b3fdbba1902e87f4b540e0e608b3ed01 |
 
 ### What did you build? (20–2 000 chars)
 

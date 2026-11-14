@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/nolossmeme/nolossmeme/security/advisories/new
+    about: Report it privately, not in a public issue.
+  - name: Try the app on testnet
+    url: https://app.nolossmeme.fun
+    about: Live pools, faucet and launch form.

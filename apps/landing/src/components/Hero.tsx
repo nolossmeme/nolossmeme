@@ -89,7 +89,7 @@ export function Hero() {
             Open the app →
           </a>
           <a href={`${import.meta.env.BASE_URL}demo/`} className="btn-secondary">
-            ▶ Watch the 99 s demo
+            ▶ Watch the 46 s demo
           </a>
           <a href="#how" className="btn-secondary">
             How it works

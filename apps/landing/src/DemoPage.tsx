@@ -10,12 +10,11 @@ const NEARBLOCKS = "https://testnet.nearblocks.io/txns/";
 /** Scene starts in docs/demo.mp4 (tools/video), seconds. */
 const CHAPTERS: [number, string][] = [
   [0, "Why no-loss"],
-  [12, "Where your NEAR goes"],
-  [26, "Streak rules"],
-  [44, "Live on testnet"],
-  [60, "The draw"],
-  [78, "Floor, redeem, withdraw"],
-  [87, "Launch your own"],
+  [10, "Deposit, keep it"],
+  [16, "Yield becomes memes"],
+  [20, "Community check-ins"],
+  [30, "Live on testnet"],
+  [35, "Launch your own"],
 ];
 
 /** The on-chain steps the video shows, all on NEAR testnet. */
@@ -40,13 +39,13 @@ export function DemoPage() {
     <>
       <Header />
       <main className="mx-auto max-w-6xl px-4 pt-32 pb-16">
-        <span className="kicker">Demo · 99 seconds</span>
+        <span className="kicker">Demo · 46 seconds</span>
         <h1 className="display mt-3 text-4xl sm:text-6xl">
           See it work, <span className="gradient-lime">on chain</span>
         </h1>
         <p className="mt-4 max-w-2xl text-muted">
-          Deposit NEAR, check in, hit the community target and watch the draw mint. Narrated
-          walkthrough of the live testnet app; every transaction in it is real.
+          Deposit NEAR and keep it, check in with the community, and let only the staking yield mint
+          memes. The pool in it is live on NEAR testnet.
         </p>
 
         <div className="card mt-10 overflow-hidden p-0">
@@ -83,7 +82,7 @@ export function DemoPage() {
           <section className="card p-6">
             <h2 className="font-semibold">Verify it yourself</h2>
             <p className="mt-2 text-sm text-muted">
-              The transactions from the video, on NearBlocks (testnet).
+              Real transactions from the DOGN pool, on NearBlocks (testnet).
             </p>
             <ul className="mt-4 space-y-3">
               {TXS.map(([what, hash]) => (

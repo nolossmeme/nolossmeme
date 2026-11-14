@@ -1,5 +1,5 @@
 /** Full-page screenshots of the live app plus the box of each section we zoom into.
- *  Writes public/shots/<name>.png, public/shots/boxes.json and the latest DOGN draw as draw.json. */
+ *  Writes public/shots/<name>.png and public/shots/boxes.json. */
 import { mkdirSync, writeFileSync } from "node:fs";
 
 import { chromium, type Page } from "playwright";
@@ -73,9 +73,4 @@ for (const pg of PAGES) {
   console.log(pg.name, Object.keys(boxes).join(","));
 }
 writeFileSync(new URL("boxes.json", OUT), JSON.stringify(out, null, 2));
-// NEAR Blocks sits behind a bot challenge, so the video shows the indexed draw instead.
-const draws = (await (
-  await fetch("https://api.nolossmeme.fun/pools/dogn.streak.nolossmeme.testnet/draws?limit=1")
-).json()) as unknown[];
-writeFileSync(new URL("draw.json", OUT), JSON.stringify(draws[0] ?? null, null, 2));
 await browser.close();

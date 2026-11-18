@@ -24,7 +24,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "near-api-js": "^7.4.0"
+    "near-api-js": "^7.5.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

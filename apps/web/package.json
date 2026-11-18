@@ -16,7 +16,7 @@
     "@nolossmeme/sdk": "workspace:*",
     "@nolossmeme/ui": "workspace:*",
     "@tanstack/react-query": "^5.107.1",
-    "near-api-js": "^7.4.0",
+    "near-api-js": "^7.5.3",
     "near-connect-hooks": "^1.1.6",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
